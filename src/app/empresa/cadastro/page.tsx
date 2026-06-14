@@ -12,7 +12,6 @@ import {
   MapPinned,
   Phone,
 } from "lucide-react";
-import type { ReactNode } from "react";
 import { useMemo, useState } from "react";
 import { Controller, useForm, useWatch } from "react-hook-form";
 import { toast } from "sonner";
@@ -22,8 +21,8 @@ import { FormInput } from "@/components/form/FormInput";
 import { FormSelect } from "@/components/form/FormSelect";
 import { FormTextarea } from "@/components/form/FormTextarea";
 import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
 import { companySignupSchema, type CompanySignupForm } from "./schema";
+import FormSection from "@/components/form/FormSection";
 
 type CityOption = {
   value: string;
@@ -167,7 +166,7 @@ export default function CompanySignup() {
       }
     >
       <form onSubmit={handleSubmit(onSubmit)} className="grid gap-4 lg:grid-cols-2" noValidate>
-        <Section title="Dados da empresa">
+        <FormSection title="Dados da empresa">
           <FormInput
             id="business_name"
             label="Nome da Empresa"
@@ -229,9 +228,9 @@ export default function CompanySignup() {
             error={errors.email?.message}
             {...register("email")}
           />
-        </Section>
+        </FormSection>
 
-        <Section title="Endereço">
+        <FormSection title="Endereço">
           <Controller
             control={control}
             name="cep"
@@ -300,9 +299,9 @@ export default function CompanySignup() {
               />
             )}
           />
-        </Section>
+        </FormSection>
 
-        <Section title="Descrição da empresa">
+        <FormSection title="Descrição da empresa">
           <FormTextarea
             id="description"
             label="Descrição"
@@ -313,9 +312,9 @@ export default function CompanySignup() {
             className="min-h-32"
             {...register("description")}
           />
-        </Section>
+        </FormSection>
 
-        <Section title="Dados de acesso">
+        <FormSection title="Dados de acesso">
           <FormInput
             id="password"
             label="Senha"
@@ -337,9 +336,9 @@ export default function CompanySignup() {
             error={errors.confirm?.message}
             {...register("confirm")}
           />
-        </Section>
+        </FormSection>
 
-        <Section title="Termos e políticas" className="lg:col-span-2">
+        <FormSection title="Termos e políticas" className="lg:col-span-2">
           <div className="space-y-1.5 lg:col-span-2">
             <label className="flex items-start gap-3 text-sm text-foreground">
               <input
@@ -372,7 +371,7 @@ export default function CompanySignup() {
               </p>
             ) : null}
           </div>
-        </Section>
+        </FormSection>
 
         <div className="lg:col-span-2">
           <Button type="submit" disabled={isSubmitting} className="bg-gradient-primary h-11 w-full">
@@ -381,22 +380,5 @@ export default function CompanySignup() {
         </div>
       </form>
     </AuthShell>
-  );
-}
-
-function Section({
-  title,
-  children,
-  className,
-}: {
-  title: string;
-  children: ReactNode;
-  className?: string;
-}) {
-  return (
-    <section className={cn("space-y-4 rounded-2xl border border-border/60 bg-card/30 p-4 sm:p-5", className)}>
-      <h2 className="font-display text-sm font-bold uppercase text-muted-foreground">{title}</h2>
-      <div className="grid gap-4 lg:grid-cols-2">{children}</div>
-    </section>
   );
 }
