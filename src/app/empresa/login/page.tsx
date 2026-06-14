@@ -2,15 +2,13 @@
 
 import Link from "next/link";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { AlertCircle, Loader2, Lock, Mail } from "lucide-react";
+import { Loader2, Lock, Mail } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 
 import { AuthShell } from "@/components/AuthShell";
+import { FormInput } from "@/components/form/FormInput";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { cn } from "@/lib/utils";
 import { companyLoginSchema, type CompanyLoginForm } from "./schema";
 
 export default function CompanyLoginPage() {
@@ -51,57 +49,27 @@ export default function CompanyLoginPage() {
     >
       <div className="mx-auto max-w-md">
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
-          <div className="space-y-1.5">
-            <Label htmlFor="email">E-mail</Label>
-            <div className="relative">
-              <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                id="email"
-                type="email"
-                placeholder="empresa@exemplo.com"
-                autoComplete="email"
-                aria-invalid={Boolean(errors.email)}
-                aria-describedby={errors.email ? "email-error" : undefined}
-                className={cn(
-                  "h-11 pl-9",
-                  errors.email && "border-destructive focus-visible:ring-destructive",
-                )}
-                {...register("email")}
-              />
-            </div>
-            {errors.email ? (
-              <p id="email-error" className="flex items-center gap-1.5 text-xs text-destructive">
-                <AlertCircle className="h-3.5 w-3.5" />
-                {errors.email.message}
-              </p>
-            ) : null}
-          </div>
+          <FormInput
+            id="email"
+            label="E-mail"
+            type="email"
+            placeholder="empresa@exemplo.com"
+            autoComplete="email"
+            icon={<Mail className="h-4 w-4" />}
+            error={errors.email?.message}
+            {...register("email")}
+          />
 
-          <div className="space-y-1.5">
-            <Label htmlFor="password">Senha</Label>
-            <div className="relative">
-              <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                id="password"
-                type="password"
-                placeholder="Digite sua senha"
-                autoComplete="current-password"
-                aria-invalid={Boolean(errors.password)}
-                aria-describedby={errors.password ? "password-error" : undefined}
-                className={cn(
-                  "h-11 pl-9",
-                  errors.password && "border-destructive focus-visible:ring-destructive",
-                )}
-                {...register("password")}
-              />
-            </div>
-            {errors.password ? (
-              <p id="password-error" className="flex items-center gap-1.5 text-xs text-destructive">
-                <AlertCircle className="h-3.5 w-3.5" />
-                {errors.password.message}
-              </p>
-            ) : null}
-          </div>
+          <FormInput
+            id="password"
+            label="Senha"
+            type="password"
+            placeholder="Digite sua senha"
+            autoComplete="current-password"
+            icon={<Lock className="h-4 w-4" />}
+            error={errors.password?.message}
+            {...register("password")}
+          />
 
           <Button type="submit" disabled={isSubmitting} className="bg-gradient-primary h-11 w-full">
             {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : "Entrar no painel"}
