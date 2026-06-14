@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { AlertCircle, Loader2, Lock, Mail } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -10,11 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
-
-type CompanyLoginForm = {
-  email: string;
-  password: string;
-};
+import { companyLoginSchema, type CompanyLoginForm } from "./schema";
 
 export default function CompanyLoginPage() {
   const {
@@ -22,6 +19,7 @@ export default function CompanyLoginPage() {
     handleSubmit,
     formState: { errors, isSubmitting },
   } = useForm<CompanyLoginForm>({
+    resolver: zodResolver(companyLoginSchema),
     mode: "onTouched",
     reValidateMode: "onChange",
     defaultValues: {
@@ -68,13 +66,7 @@ export default function CompanyLoginPage() {
                   "h-11 pl-9",
                   errors.email && "border-destructive focus-visible:ring-destructive",
                 )}
-                {...register("email", {
-                  required: "Informe o e-mail da empresa.",
-                  pattern: {
-                    value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
-                    message: "Digite um e-mail válido.",
-                  },
-                })}
+                {...register("email")}
               />
             </div>
             {errors.email ? (
@@ -100,15 +92,7 @@ export default function CompanyLoginPage() {
                   "h-11 pl-9",
                   errors.password && "border-destructive focus-visible:ring-destructive",
                 )}
-                {...register("password", {
-                  required: "Informe sua senha.",
-                  minLength: {
-                    value: 8,
-                    message: "A senha precisa ter pelo menos 8 caracteres.",
-                  },
-                  validate: (value) =>
-                    value.trim().length > 0 || "A senha não pode conter apenas espaços.",
-                })}
+                {...register("password")}
               />
             </div>
             {errors.password ? (
