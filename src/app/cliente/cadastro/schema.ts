@@ -31,13 +31,19 @@ export const clientSignupSchema = z
     full_name: z
       .string()
       .trim()
-      .min(1, "Nome completo é obrigatório.")
-      .max(150, "Nome completo deve ter no máximo 150 caracteres."),
+      .min(1, "Nome é obrigatório.")
+      .max(150, "Nome deve ter no máximo 150 caracteres.")
+      .regex(/^[A-Za-zÀ-ÿ\s]+$/, "Nome deve conter apenas letras e espaços."),
     cpf: z
       .string()
       .trim()
       .min(1, "CPF é obrigatório.")
-      .refine(isValidCpf, "Insira um CPF válido."),
+      .refine(isValidCpf, "CPF inválido."),
+    email: z
+      .string()
+      .trim()
+      .min(1, "Email é obrigatório.")
+      .email("Email inválido."),
     phone: z
       .string()
       .trim()
@@ -51,18 +57,28 @@ export const clientSignupSchema = z
       .trim()
       .min(1, "CEP é obrigatório.")
       .regex(/^\d{5}-?\d{3}$/, "Digite um CEP válido."),
-    uf: z.string().min(1, "UF é obrigatória."),
-    city: z.string().min(1, "Cidade é obrigatória."),
-    email: z
+    address: z
       .string()
       .trim()
-      .min(1, "Email é obrigatório.")
-      .email("Email inválido."),
+      .min(1, "Endereço é obrigatório.")
+      .max(150, "Endereço deve ter no máximo 150 caracteres.")
+      .regex(/^[A-Za-zÀ-ÿ\s]+$/, "Endereço deve conter apenas letras e espaços."),
+    uf: z.string().min(1, "UF é obrigatória."),
+    city: z.string().min(1, "Cidade é obrigatória."),
     password: z
       .string()
       .min(1, "Senha é obrigatória.")
-      .min(8, "A senha precisa ter pelo menos 8 caracteres."),
+      .regex(
+        /^(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$/,
+        "A senha deve ter no mínimo 8 caracteres, uma letra maiúscula, um número e um caractere especial.",
+      ),
     confirm: z.string().min(1, "Confirmação de senha é obrigatória."),
+    terms: z
+      .boolean()
+      .refine(
+        (value) => value,
+        "Você deve aceitar os Termos de Uso e a Política de Privacidade para continuar.",
+      ),
   })
   .refine((data) => data.password === data.confirm, {
     message: "As senhas não coincidem.",

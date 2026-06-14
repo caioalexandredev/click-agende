@@ -10,10 +10,13 @@ interface Props {
   tone: "client" | "company";
   children: ReactNode;
   footer?: ReactNode;
+  size?: "default" | "wide";
 }
 
-export function AuthShell({ title, subtitle, badge, tone, children, footer }: Props) {
+export function AuthShell({ title, subtitle, badge, tone, children, footer, size = "default" }: Props) {
   const isCompany = tone === "company";
+  const contentWidth = size === "wide" || isCompany ? "max-w-5xl" : "max-w-md";
+
   return (
     <div className="relative min-h-screen overflow-hidden">
       <div className="pointer-events-none absolute -top-32 -left-32 h-96 w-96 rounded-full bg-primary/30 blur-3xl" />
@@ -30,8 +33,7 @@ export function AuthShell({ title, subtitle, badge, tone, children, footer }: Pr
       </header>
 
       <main
-        className={`relative z-10 mx-auto px-5 pb-16 pt-4 ${isCompany ? "max-w-5xl" : "max-w-md"
-          }`}
+        className={`relative z-10 mx-auto px-5 pb-16 pt-4 ${contentWidth}`}
       >
         <Link
           href="/"

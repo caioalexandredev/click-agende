@@ -2,13 +2,24 @@
 
 import Link from "next/link";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { FileText, Loader2, Lock, Mail, MapPin, Phone, UserRound } from "lucide-react";
+import {
+  AlertCircle,
+  FileText,
+  Loader2,
+  Lock,
+  Mail,
+  MapPin,
+  MapPinned,
+  Phone,
+  UserRound,
+} from "lucide-react";
 import { useMemo, useState } from "react";
 import { Controller, useForm, useWatch } from "react-hook-form";
 import { toast } from "sonner";
 
 import { AuthShell } from "@/components/AuthShell";
 import { FormInput } from "@/components/form/FormInput";
+import FormSection from "@/components/form/FormSection";
 import { FormSelect } from "@/components/form/FormSelect";
 import { Button } from "@/components/ui/button";
 import { clientSignupSchema, type ClientSignupForm } from "./schema";
@@ -91,13 +102,15 @@ export default function ClientSignupPage() {
     defaultValues: {
       full_name: "",
       cpf: "",
+      email: "",
       phone: "",
       cep: "",
+      address: "",
       uf: "",
       city: "",
-      email: "",
       password: "",
       confirm: "",
+      terms: false,
     },
   });
 
@@ -130,31 +143,33 @@ export default function ClientSignupPage() {
   }, [isLoadingCities, selectedUf]);
 
   async function onSubmit(data: ClientSignupForm) {
-    toast.success("Cadastro realizado!", {
-      description: `Conta criada para ${data.full_name}.`,
+    toast.success("Conta criada com sucesso! Faça login para continuar.", {
+      description: `Cadastro criado para ${data.full_name}.`,
     });
   }
 
   return (
     <AuthShell
       tone="client"
+      size="wide"
       badge="Área do Cliente"
       title="Cadastro de Cliente"
-      subtitle="Crie sua conta no ClickAgende"
+      subtitle="Crie sua conta no Agendamento"
       footer={
         <>
-          Já tem conta?{" "}
+          Já tem uma conta?{" "}
           <Link href="/cliente/login" className="font-semibold text-primary hover:underline">
             Fazer login
           </Link>
         </>
       }
     >
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
-        <div className="grid gap-4 sm:grid-cols-2">
+      <form onSubmit={handleSubmit(onSubmit)} className="grid gap-4 lg:grid-cols-2" noValidate>
+        <FormSection title="Dados pessoais">
           <FormInput
             id="full_name"
-            label="Nome completo"
+            label="Nome Completo"
+            placeholder="Seu nome"
             maxLength={150}
             autoComplete="name"
             icon={<UserRound className="h-4 w-4" />}
@@ -181,9 +196,18 @@ export default function ClientSignupPage() {
               />
             )}
           />
-        </div>
 
-        <div className="grid gap-4 sm:grid-cols-2">
+          <FormInput
+            id="email"
+            label="Email"
+            type="email"
+            placeholder="cliente@exemplo.com"
+            autoComplete="email"
+            icon={<Mail className="h-4 w-4" />}
+            error={errors.email?.message}
+            {...register("email")}
+          />
+
           <Controller
             control={control}
             name="phone"
@@ -191,7 +215,7 @@ export default function ClientSignupPage() {
               <FormInput
                 id="phone"
                 label="Telefone"
-                placeholder="(11) 99999-9999"
+                placeholder="(11) 98765-4321"
                 inputMode="tel"
                 icon={<Phone className="h-4 w-4" />}
                 error={errors.phone?.message}
@@ -203,7 +227,9 @@ export default function ClientSignupPage() {
               />
             )}
           />
+        </FormSection>
 
+        <FormSection title="Endereço">
           <Controller
             control={control}
             name="cep"
@@ -223,9 +249,17 @@ export default function ClientSignupPage() {
               />
             )}
           />
-        </div>
 
-        <div className="grid gap-4 sm:grid-cols-2">
+          <FormInput
+            id="address"
+            label="Endereço Completo"
+            placeholder="Rua, Bairro"
+            maxLength={150}
+            icon={<MapPinned className="h-4 w-4" />}
+            error={errors.address?.message}
+            {...register("address")}
+          />
+
           <Controller
             control={control}
             name="uf"
@@ -265,20 +299,9 @@ export default function ClientSignupPage() {
               />
             )}
           />
-        </div>
+        </FormSection>
 
-        <FormInput
-          id="email"
-          label="Email"
-          type="email"
-          placeholder="exemplo@exemplo.com"
-          autoComplete="email"
-          icon={<Mail className="h-4 w-4" />}
-          error={errors.email?.message}
-          {...register("email")}
-        />
-
-        <div className="grid gap-4 sm:grid-cols-2">
+        <FormSection title="Dados de acesso">
           <FormInput
             id="password"
             label="Senha"
@@ -292,7 +315,7 @@ export default function ClientSignupPage() {
 
           <FormInput
             id="confirm"
-            label="Confirmar senha"
+            label="Confirmar Senha"
             type="password"
             placeholder="********"
             autoComplete="new-password"
@@ -300,11 +323,48 @@ export default function ClientSignupPage() {
             error={errors.confirm?.message}
             {...register("confirm")}
           />
-        </div>
+        </FormSection>
 
-        <Button type="submit" disabled={isSubmitting} className="bg-gradient-primary h-11 w-full">
-          {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : "Cadastrar"}
-        </Button>
+        <FormSection title="Termos e políticas">
+          <div className="space-y-1.5 lg:col-span-2">
+            <label className="flex items-start gap-3 text-sm text-foreground">
+              <input
+                type="checkbox"
+                className="mt-0.5 h-4 w-4 rounded border-input accent-primary"
+                aria-invalid={Boolean(errors.terms)}
+                aria-describedby={errors.terms ? "terms-error" : undefined}
+                {...register("terms")}
+              />
+              <span>
+                Eu li e aceito os{" "}
+                <Link href="/termos-de-uso" target="_blank" className="font-semibold text-primary hover:underline">
+                  Termos de Uso
+                </Link>{" "}
+                e a{" "}
+                <Link
+                  href="/politica-de-privacidade"
+                  target="_blank"
+                  className="font-semibold text-primary hover:underline"
+                >
+                  Política de Privacidade
+                </Link>
+                .
+              </span>
+            </label>
+            {errors.terms ? (
+              <p id="terms-error" className="flex items-center gap-1.5 text-xs text-destructive">
+                <AlertCircle className="h-3.5 w-3.5" />
+                {errors.terms.message}
+              </p>
+            ) : null}
+          </div>
+        </FormSection>
+
+        <div className="lg:col-span-2">
+          <Button type="submit" disabled={isSubmitting} className="bg-gradient-primary h-11 w-full">
+            {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : "Cadastrar"}
+          </Button>
+        </div>
       </form>
     </AuthShell>
   );
