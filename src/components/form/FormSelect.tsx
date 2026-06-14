@@ -42,7 +42,7 @@ export function FormSelect({
   const errorId = error ? `${id}-error` : undefined;
 
   return (
-    <div className="space-y-1.5">
+    <div className="w-full space-y-1.5">
       <Label htmlFor={id}>{label}</Label>
       <Select {...props}>
         <SelectTrigger
@@ -50,7 +50,7 @@ export function FormSelect({
           aria-invalid={Boolean(error)}
           aria-describedby={errorId}
           className={cn(
-            "h-11",
+            "h-11 w-full",
             error && "border-destructive focus:ring-destructive",
             triggerClassName,
           )}

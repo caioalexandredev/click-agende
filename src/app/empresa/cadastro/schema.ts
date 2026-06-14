@@ -1,51 +1,87 @@
 import { z } from "zod";
 
-const requiredText = (field: string) => `${field} é obrigatório.`;
+function onlyDigits(value: string) {
+  return value.replace(/\D/g, "");
+}
+
+function isValidCnpj(value: string) {
+  const cnpj = onlyDigits(value);
+
+  if (cnpj.length !== 14 || /^(\d)\1+$/.test(cnpj)) return false;
+
+  const calculateDigit = (base: string, weights: number[]) => {
+    const total = weights.reduce((sum, weight, index) => {
+      return sum + Number(base[index]) * weight;
+    }, 0);
+    const remainder = total % 11;
+
+    return remainder < 2 ? 0 : 11 - remainder;
+  };
+
+  const firstDigit = calculateDigit(cnpj.slice(0, 12), [5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2]);
+  const secondDigit = calculateDigit(cnpj.slice(0, 13), [6, 5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2]);
+
+  return firstDigit === Number(cnpj[12]) && secondDigit === Number(cnpj[13]);
+}
 
 export const companySignupSchema = z
   .object({
     business_name: z
       .string()
       .trim()
-      .min(2, "Informe o nome do estabelecimento."),
+      .min(1, "Nome é obrigatório.")
+      .max(150, "Nome deve ter no máximo 150 caracteres."),
+    cnpj: z
+      .string()
+      .trim()
+      .min(1, "CNPJ é obrigatório.")
+      .refine(isValidCnpj, "Insira um CNPJ válido."),
     phone: z
       .string()
       .trim()
-      .min(1, requiredText("Telefone"))
-      .refine((value) => value.replace(/\D/g, "").length >= 10, "Digite um telefone válido."),
-    address: z
-      .string()
-      .trim()
-      .min(5, "Informe um endereço completo."),
-    cep: z
-      .string()
-      .trim()
-      .min(1, requiredText("CEP"))
-      .regex(/^\d{5}-?\d{3}$/, "Digite um CEP válido."),
-    uf: z
-      .string()
-      .trim()
-      .length(2, "Digite a UF com 2 letras.")
-      .regex(/^[A-Za-z]{2}$/, "Digite uma UF válida."),
-    city: z
-      .string()
-      .trim()
-      .min(2, "Informe a cidade."),
-    full_name: z
-      .string()
-      .trim()
-      .min(3, "Informe o nome do responsável."),
+      .min(1, "Telefone é obrigatório.")
+      .refine((value) => {
+        const digits = onlyDigits(value);
+        return digits.length === 10 || digits.length === 11;
+      }, "Digite um telefone válido."),
     email: z
       .string()
       .trim()
-      .min(1, "Informe o e-mail da empresa.")
-      .email("Digite um e-mail válido."),
+      .min(1, "Email é obrigatório.")
+      .email("Email inválido.")
+      .max(150, "Email deve ter no máximo 150 caracteres."),
+    description: z
+      .string()
+      .trim()
+      .min(1, "Descrição é obrigatório.")
+      .max(500, "Descrição deve ter no máximo 500 caracteres."),
+    cep: z
+      .string()
+      .trim()
+      .min(1, "CEP é obrigatório.")
+      .regex(/^\d{5}-?\d{3}$/, "Digite um CEP válido."),
+    address: z
+      .string()
+      .trim()
+      .min(1, "Endereço é obrigatório.")
+      .max(150, "Endereço deve ter no máximo 150 caracteres.")
+      .regex(/^[A-Za-zÀ-ÿ\s]+$/, "Endereço deve conter apenas letras e espaços."),
+    uf: z.string().min(1, "UF é obrigatória."),
+    city: z.string().min(1, "Cidade é obrigatória."),
     password: z
       .string()
-      .min(1, "Informe sua senha.")
-      .min(8, "A senha precisa ter pelo menos 8 caracteres.")
-      .refine((value) => value.trim().length > 0, "A senha não pode conter apenas espaços."),
-    confirm: z.string().min(1, "Confirme sua senha."),
+      .min(1, "Senha é obrigatória.")
+      .regex(
+        /^(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$/,
+        "A senha deve ter no mínimo 8 caracteres, uma letra maiúscula, um número e um caractere especial.",
+      ),
+    confirm: z.string().min(1, "Confirmação de senha é obrigatória."),
+    terms: z
+      .boolean()
+      .refine(
+        (value) => value,
+        "Você deve aceitar os Termos de Uso e a Política de Privacidade para continuar.",
+      ),
   })
   .refine((data) => data.password === data.confirm, {
     message: "As senhas não coincidem.",
