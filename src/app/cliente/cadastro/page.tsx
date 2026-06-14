@@ -2,16 +2,7 @@
 
 import Link from "next/link";
 import { zodResolver } from "@hookform/resolvers/zod";
-import {
-  AlertCircle,
-  Building2,
-  FileText,
-  Loader2,
-  Lock,
-  Mail,
-  MapPinned,
-  Phone,
-} from "lucide-react";
+import { FileText, Loader2, Lock, Mail, MapPin, Phone, UserRound } from "lucide-react";
 import { useMemo, useState } from "react";
 import { Controller, useForm, useWatch } from "react-hook-form";
 import { toast } from "sonner";
@@ -19,10 +10,8 @@ import { toast } from "sonner";
 import { AuthShell } from "@/components/AuthShell";
 import { FormInput } from "@/components/form/FormInput";
 import { FormSelect } from "@/components/form/FormSelect";
-import { FormTextarea } from "@/components/form/FormTextarea";
 import { Button } from "@/components/ui/button";
-import { companySignupSchema, type CompanySignupForm } from "./schema";
-import FormSection from "@/components/form/FormSection";
+import { clientSignupSchema, type ClientSignupForm } from "./schema";
 
 type CityOption = {
   value: string;
@@ -63,13 +52,12 @@ function onlyDigits(value: string) {
   return value.replace(/\D/g, "");
 }
 
-function formatCnpj(value: string) {
+function formatCpf(value: string) {
   return onlyDigits(value)
-    .slice(0, 14)
-    .replace(/^(\d{2})(\d)/, "$1.$2")
-    .replace(/^(\d{2})\.(\d{3})(\d)/, "$1.$2.$3")
-    .replace(/\.(\d{3})(\d)/, ".$1/$2")
-    .replace(/(\d{4})(\d)/, "$1-$2");
+    .slice(0, 11)
+    .replace(/^(\d{3})(\d)/, "$1.$2")
+    .replace(/^(\d{3})\.(\d{3})(\d)/, "$1.$2.$3")
+    .replace(/\.(\d{3})(\d)/, ".$1-$2");
 }
 
 function formatPhone(value: string) {
@@ -86,7 +74,7 @@ function formatCep(value: string) {
   return onlyDigits(value).slice(0, 8).replace(/^(\d{5})(\d)/, "$1-$2");
 }
 
-export default function CompanySignupPage() {
+export default function ClientSignupPage() {
   const [cities, setCities] = useState<CityOption[]>([]);
   const [isLoadingCities, setIsLoadingCities] = useState(false);
 
@@ -96,23 +84,20 @@ export default function CompanySignupPage() {
     handleSubmit,
     resetField,
     formState: { errors, isSubmitting },
-  } = useForm<CompanySignupForm>({
-    resolver: zodResolver(companySignupSchema),
+  } = useForm<ClientSignupForm>({
+    resolver: zodResolver(clientSignupSchema),
     mode: "onTouched",
     reValidateMode: "onChange",
     defaultValues: {
-      business_name: "",
-      cnpj: "",
+      full_name: "",
+      cpf: "",
       phone: "",
-      email: "",
-      description: "",
       cep: "",
-      address: "",
       uf: "",
       city: "",
+      email: "",
       password: "",
       confirm: "",
-      terms: false,
     },
   });
 
@@ -144,59 +129,61 @@ export default function CompanySignupPage() {
     return "Selecione a cidade";
   }, [isLoadingCities, selectedUf]);
 
-  async function onSubmit(data: CompanySignupForm) {
-    toast.success("Conta criada com sucesso! Faça login para continuar.", {
-      description: `Cadastro criado para ${data.business_name}.`,
+  async function onSubmit(data: ClientSignupForm) {
+    toast.success("Cadastro realizado!", {
+      description: `Conta criada para ${data.full_name}.`,
     });
   }
 
   return (
     <AuthShell
-      tone="company"
-      badge="Painel da Empresa"
-      title="Cadastro de Empresa"
-      subtitle="Registre seu estabelecimento no Agendamento"
+      tone="client"
+      badge="Área do Cliente"
+      title="Cadastro de Cliente"
+      subtitle="Crie sua conta no ClickAgende"
       footer={
         <>
-          Já tem uma conta?{" "}
-          <Link href="/empresa/login" className="font-semibold text-primary hover:underline">
+          Já tem conta?{" "}
+          <Link href="/cliente/login" className="font-semibold text-primary hover:underline">
             Fazer login
           </Link>
         </>
       }
     >
-      <form onSubmit={handleSubmit(onSubmit)} className="grid gap-4 lg:grid-cols-2" noValidate>
-        <FormSection title="Dados da empresa">
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
+        <div className="grid gap-4 sm:grid-cols-2">
           <FormInput
-            id="business_name"
-            label="Nome da Empresa"
-            placeholder="Nome do estabelecimento"
+            id="full_name"
+            label="Nome completo"
             maxLength={150}
-            icon={<Building2 className="h-4 w-4" />}
-            error={errors.business_name?.message}
-            {...register("business_name")}
+            autoComplete="name"
+            icon={<UserRound className="h-4 w-4" />}
+            error={errors.full_name?.message}
+            {...register("full_name")}
           />
 
           <Controller
             control={control}
-            name="cnpj"
+            name="cpf"
             render={({ field }) => (
               <FormInput
-                id="cnpj"
-                label="CNPJ"
-                placeholder="00.000.000/0000-00"
+                id="cpf"
+                label="CPF"
+                placeholder="000.000.000-00"
                 inputMode="numeric"
                 icon={<FileText className="h-4 w-4" />}
-                error={errors.cnpj?.message}
+                error={errors.cpf?.message}
                 name={field.name}
                 ref={field.ref}
                 value={field.value}
                 onBlur={field.onBlur}
-                onChange={(event) => field.onChange(formatCnpj(event.target.value))}
+                onChange={(event) => field.onChange(formatCpf(event.target.value))}
               />
             )}
           />
+        </div>
 
+        <div className="grid gap-4 sm:grid-cols-2">
           <Controller
             control={control}
             name="phone"
@@ -204,7 +191,7 @@ export default function CompanySignupPage() {
               <FormInput
                 id="phone"
                 label="Telefone"
-                placeholder="(11) 3456-7890"
+                placeholder="(11) 99999-9999"
                 inputMode="tel"
                 icon={<Phone className="h-4 w-4" />}
                 error={errors.phone?.message}
@@ -217,20 +204,6 @@ export default function CompanySignupPage() {
             )}
           />
 
-          <FormInput
-            id="email"
-            label="Email"
-            type="email"
-            placeholder="contato@empresa.com"
-            autoComplete="email"
-            maxLength={150}
-            icon={<Mail className="h-4 w-4" />}
-            error={errors.email?.message}
-            {...register("email")}
-          />
-        </FormSection>
-
-        <FormSection title="Endereço">
           <Controller
             control={control}
             name="cep"
@@ -240,6 +213,7 @@ export default function CompanySignupPage() {
                 label="CEP"
                 placeholder="00000-000"
                 inputMode="numeric"
+                icon={<MapPin className="h-4 w-4" />}
                 error={errors.cep?.message}
                 name={field.name}
                 ref={field.ref}
@@ -249,17 +223,9 @@ export default function CompanySignupPage() {
               />
             )}
           />
+        </div>
 
-          <FormInput
-            id="address"
-            label="Endereço Completo"
-            placeholder="Rua, Bairro"
-            maxLength={150}
-            icon={<MapPinned className="h-4 w-4" />}
-            error={errors.address?.message}
-            {...register("address")}
-          />
-
+        <div className="grid gap-4 sm:grid-cols-2">
           <Controller
             control={control}
             name="uf"
@@ -299,22 +265,20 @@ export default function CompanySignupPage() {
               />
             )}
           />
-        </FormSection>
+        </div>
 
-        <FormSection title="Descrição da empresa">
-          <FormTextarea
-            id="description"
-            label="Descrição"
-            placeholder="Descreva seu estabelecimento..."
-            maxLength={500}
-            error={errors.description?.message}
-            wrapperClassName="lg:col-span-2"
-            className="min-h-32"
-            {...register("description")}
-          />
-        </FormSection>
+        <FormInput
+          id="email"
+          label="Email"
+          type="email"
+          placeholder="exemplo@exemplo.com"
+          autoComplete="email"
+          icon={<Mail className="h-4 w-4" />}
+          error={errors.email?.message}
+          {...register("email")}
+        />
 
-        <FormSection title="Dados de acesso">
+        <div className="grid gap-4 sm:grid-cols-2">
           <FormInput
             id="password"
             label="Senha"
@@ -328,7 +292,7 @@ export default function CompanySignupPage() {
 
           <FormInput
             id="confirm"
-            label="Confirmar Senha"
+            label="Confirmar senha"
             type="password"
             placeholder="********"
             autoComplete="new-password"
@@ -336,48 +300,11 @@ export default function CompanySignupPage() {
             error={errors.confirm?.message}
             {...register("confirm")}
           />
-        </FormSection>
-
-        <FormSection title="Termos e políticas" className="lg:col-span-2">
-          <div className="space-y-1.5 lg:col-span-2">
-            <label className="flex items-start gap-3 text-sm text-foreground">
-              <input
-                type="checkbox"
-                className="mt-0.5 h-4 w-4 rounded border-input accent-primary"
-                aria-invalid={Boolean(errors.terms)}
-                aria-describedby={errors.terms ? "terms-error" : undefined}
-                {...register("terms")}
-              />
-              <span>
-                Eu li e aceito os{" "}
-                <Link href="/termos-de-uso" target="_blank" className="font-semibold text-primary hover:underline">
-                  Termos de Uso
-                </Link>{" "}
-                e a{" "}
-                <Link
-                  href="/politica-de-privacidade"
-                  target="_blank"
-                  className="font-semibold text-primary hover:underline"
-                >
-                  Política de Privacidade
-                </Link>
-                .
-              </span>
-            </label>
-            {errors.terms ? (
-              <p id="terms-error" className="flex items-center gap-1.5 text-xs text-destructive">
-                <AlertCircle className="h-3.5 w-3.5" />
-                {errors.terms.message}
-              </p>
-            ) : null}
-          </div>
-        </FormSection>
-
-        <div className="lg:col-span-2">
-          <Button type="submit" disabled={isSubmitting} className="bg-gradient-primary h-11 w-full">
-            {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : "Cadastrar Empresa"}
-          </Button>
         </div>
+
+        <Button type="submit" disabled={isSubmitting} className="bg-gradient-primary h-11 w-full">
+          {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : "Cadastrar"}
+        </Button>
       </form>
     </AuthShell>
   );
