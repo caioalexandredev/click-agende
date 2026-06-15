@@ -834,7 +834,11 @@ function BookingModal({
                   return (
                     <label
                       key={service.id}
-                      className="flex cursor-pointer items-center gap-3 rounded-xl px-2 py-2 hover:bg-primary/5"
+                      className={`flex items-center gap-3 rounded-xl px-2 py-2 transition ${
+                        disabled
+                          ? "cursor-not-allowed opacity-45"
+                          : "cursor-pointer hover:bg-primary/5"
+                      }`}
                     >
                       <Checkbox
                         checked={checked}
