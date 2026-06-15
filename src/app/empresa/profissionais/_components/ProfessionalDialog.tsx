@@ -35,7 +35,7 @@ type ProfessionalDialogProps = {
   onOpenChange: (open: boolean) => void;
   professional?: Professional | null;
   serviceOptions: ProfessionalServiceOption[];
-  onSubmit: (data: ProfessionalForm) => void;
+  onSubmit: (data: ProfessionalForm) => Promise<boolean>;
 };
 
 const DEFAULT_VALUES: ProfessionalForm = {
@@ -106,9 +106,9 @@ export function ProfessionalDialog({
     );
   }, [open, professional, reset]);
 
-  function submit(data: ProfessionalForm) {
-    onSubmit(data);
-    onOpenChange(false);
+  async function submit(data: ProfessionalForm) {
+    const success = await onSubmit(data);
+    if (success) onOpenChange(false);
   }
 
   return (

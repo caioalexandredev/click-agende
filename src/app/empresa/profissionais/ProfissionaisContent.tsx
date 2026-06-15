@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   ArrowLeft,
   BriefcaseBusiness,
@@ -29,60 +29,25 @@ import { ProfessionalDialog } from "./_components/ProfessionalDialog";
 import type { Professional, ProfessionalServiceOption } from "./types";
 import type { ProfessionalForm } from "./schema";
 
-const MOCK_SERVICES: ProfessionalServiceOption[] = [
-  { id: "srv-1", name: "Corte feminino", durationMin: 60 },
-  { id: "srv-2", name: "Barba completa", durationMin: 35 },
-  { id: "srv-3", name: "Manicure tradicional", durationMin: 50 },
-  { id: "srv-4", name: "Escova modelada", durationMin: 45 },
-];
+type ServiceResponse = {
+  id: number;
+  nome: string;
+  duracao: number;
+};
 
-const MOCK_PROFESSIONALS: Professional[] = [
-  {
-    id: "pro-1",
-    name: "Ana Beatriz Souza",
-    role: "Cabeleireira",
-    phone: "(63) 99912-3344",
-    email: "ana@clickagende.com",
-    profileImageUrl: "https://i.pravatar.cc/150?img=47",
-    workStart: "08:00",
-    workEnd: "17:00",
-    serviceIds: ["srv-1", "srv-4"],
-    status: "active",
-    bio: "Especialista em cortes femininos, escova e finalização.",
-    appointmentsThisWeek: 18,
-    rating: 4.9,
-  },
-  {
-    id: "pro-2",
-    name: "Marcos Vinícius Lima",
-    role: "Barbeiro",
-    phone: "(63) 99888-1020",
-    email: "marcos@clickagende.com",
-    profileImageUrl: "https://i.pravatar.cc/150?img=12",
-    workStart: "09:00",
-    workEnd: "19:00",
-    serviceIds: ["srv-2"],
-    status: "active",
-    bio: "Atende cortes masculinos, barba e acabamento.",
-    appointmentsThisWeek: 14,
-    rating: 4.8,
-  },
-  {
-    id: "pro-3",
-    name: "Juliana Carvalho",
-    role: "Manicure",
-    phone: "(63) 99777-4500",
-    email: "juliana@clickagende.com",
-    profileImageUrl: "https://i.pravatar.cc/150?img=32",
-    workStart: "08:30",
-    workEnd: "16:30",
-    serviceIds: ["srv-3"],
-    status: "inactive",
-    bio: "Horários temporariamente pausados para reorganização da agenda.",
-    appointmentsThisWeek: 0,
-    rating: 4.7,
-  },
-];
+type ProfessionalResponse = {
+  id: string;
+  nomeCompleto: string;
+  email: string;
+  telefone: string;
+  especialidade: string;
+  urlImagem?: string | null;
+  biografia?: string | null;
+  horarioInicio: string;
+  horarioFim: string;
+  disponivel?: boolean | null;
+  servicos?: ServiceResponse[];
+};
 
 const STATUS_OPTIONS = [
   { value: "all", label: "Todos" },
@@ -90,22 +55,91 @@ const STATUS_OPTIONS = [
   { value: "inactive", label: "Inativos" },
 ];
 
+function toTime(value: string) {
+  return value.slice(0, 5);
+}
+
+function mapService(service: ServiceResponse): ProfessionalServiceOption {
+  return {
+    id: String(service.id),
+    name: service.nome,
+    durationMin: Number(service.duracao),
+  };
+}
+
+function mapProfessional(professional: ProfessionalResponse): Professional {
+  return {
+    id: professional.id,
+    name: professional.nomeCompleto,
+    role: professional.especialidade,
+    phone: professional.telefone,
+    email: professional.email,
+    profileImageUrl: professional.urlImagem ?? "",
+    workStart: toTime(professional.horarioInicio),
+    workEnd: toTime(professional.horarioFim),
+    serviceIds: professional.servicos?.map((service) => String(service.id)) ?? [],
+    status: professional.disponivel === false ? "inactive" : "active",
+    bio: professional.biografia ?? "",
+    appointmentsThisWeek: 0,
+    rating: 5,
+  };
+}
+
 export default function ProfissionaisContent() {
   const { company, loading } = useCompanyGuard();
-  const [professionals, setProfessionals] = useState<Professional[]>(MOCK_PROFESSIONALS);
+  const [professionals, setProfessionals] = useState<Professional[]>([]);
+  const [services, setServices] = useState<ProfessionalServiceOption[]>([]);
+  const [loadingData, setLoadingData] = useState(true);
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingProfessional, setEditingProfessional] = useState<Professional | null>(null);
   const [deletingProfessional, setDeletingProfessional] = useState<Professional | null>(null);
 
+  useEffect(() => {
+    let active = true;
+
+    async function loadData() {
+      setLoadingData(true);
+
+      try {
+        const [professionalsResponse, servicesResponse] = await Promise.all([
+          fetch("/api/empresa/profissionais"),
+          fetch("/api/empresa/servicos"),
+        ]);
+        const professionalsPayload = await professionalsResponse.json().catch(() => null);
+        const servicesPayload = await servicesResponse.json().catch(() => null);
+
+        if (!professionalsResponse.ok) {
+          throw new Error(professionalsPayload?.message ?? "Não foi possível carregar os profissionais.");
+        }
+        if (!servicesResponse.ok) {
+          throw new Error(servicesPayload?.message ?? "Não foi possível carregar os serviços.");
+        }
+
+        if (!active) return;
+        setProfessionals((professionalsPayload as ProfessionalResponse[]).map(mapProfessional));
+        setServices((servicesPayload as ServiceResponse[]).map(mapService));
+      } catch (error) {
+        toast.error(error instanceof Error ? error.message : "Não foi possível carregar os profissionais.");
+      } finally {
+        if (active) setLoadingData(false);
+      }
+    }
+
+    void loadData();
+
+    return () => {
+      active = false;
+    };
+  }, []);
+
   const filteredProfessionals = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
 
     return professionals.filter((professional) => {
-      const professionalServices = MOCK_SERVICES.filter((service) =>
-        professional.serviceIds.includes(service.id),
-      )
+      const professionalServices = services
+        .filter((service) => professional.serviceIds.includes(service.id))
         .map((service) => service.name)
         .join(" ");
       const matchesStatus = statusFilter === "all" || professional.status === statusFilter;
@@ -124,7 +158,7 @@ export default function ProfissionaisContent() {
 
       return matchesStatus && matchesQuery;
     });
-  }, [professionals, query, statusFilter]);
+  }, [professionals, query, services, statusFilter]);
 
   const activeCount = professionals.filter((professional) => professional.status === "active").length;
   const appointmentsThisWeek = professionals.reduce(
@@ -142,40 +176,67 @@ export default function ProfissionaisContent() {
     setDialogOpen(true);
   }
 
-  function saveProfessional(data: ProfessionalForm) {
-    if (editingProfessional) {
-      setProfessionals((current) =>
-        current.map((professional) =>
-          professional.id === editingProfessional.id ? { ...professional, ...data } : professional,
-        ),
+  async function saveProfessional(data: ProfessionalForm) {
+    try {
+      const response = await fetch(
+        editingProfessional
+          ? `/api/empresa/profissionais/${editingProfessional.id}`
+          : "/api/empresa/profissionais",
+        {
+          method: editingProfessional ? "PUT" : "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify(data),
+        },
       );
-      toast.success("Profissional atualizado com sucesso.");
-      return;
-    }
+      const payload = await response.json().catch(() => null);
 
-    setProfessionals((current) => [
-      {
-        id: `pro-${Date.now()}`,
-        ...data,
-        appointmentsThisWeek: 0,
-        rating: 5,
-      },
-      ...current,
-    ]);
-    toast.success("Profissional cadastrado com sucesso.");
+      if (!response.ok) {
+        throw new Error(
+          payload?.message ??
+            (editingProfessional
+              ? "Não foi possível atualizar o profissional."
+              : "Não foi possível cadastrar o profissional."),
+        );
+      }
+
+      const saved = mapProfessional(payload as ProfessionalResponse);
+      setProfessionals((current) =>
+        editingProfessional
+          ? current.map((professional) => (professional.id === saved.id ? saved : professional))
+          : [saved, ...current],
+      );
+      toast.success(editingProfessional ? "Profissional atualizado com sucesso." : "Profissional cadastrado com sucesso.");
+      return true;
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Não foi possível salvar o profissional.");
+      return false;
+    }
   }
 
-  function confirmDelete() {
+  async function confirmDelete() {
     if (!deletingProfessional) return;
 
-    setProfessionals((current) =>
-      current.filter((professional) => professional.id !== deletingProfessional.id),
-    );
-    toast.success("Profissional removido.");
-    setDeletingProfessional(null);
+    try {
+      const response = await fetch(`/api/empresa/profissionais/${deletingProfessional.id}`, {
+        method: "DELETE",
+      });
+      const payload = await response.json().catch(() => null);
+
+      if (!response.ok) {
+        throw new Error(payload?.message ?? "Não foi possível excluir o profissional.");
+      }
+
+      setProfessionals((current) =>
+        current.filter((professional) => professional.id !== deletingProfessional.id),
+      );
+      toast.success("Profissional excluído.");
+      setDeletingProfessional(null);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Não foi possível excluir o profissional.");
+    }
   }
 
-  if (loading) return <Center />;
+  if (loading || loadingData) return <Center />;
 
   return (
     <div className="relative min-h-screen overflow-hidden">
@@ -183,13 +244,6 @@ export default function ProfissionaisContent() {
       <CompanyHeader businessName={company?.business_name ?? ""} />
 
       <main className="relative z-10 mx-auto max-w-7xl px-4 pb-12 pt-4 sm:px-6">
-        <Link
-          href="/empresa"
-          className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
-        >
-          <ArrowLeft className="h-4 w-4" /> Voltar ao Dashboard
-        </Link>
-
         <section className="mt-4 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div>
             <h1 className="font-display text-2xl font-bold sm:text-3xl">Profissionais</h1>
@@ -246,7 +300,7 @@ export default function ProfissionaisContent() {
                 <ProfessionalCard
                   key={professional.id}
                   professional={professional}
-                  services={MOCK_SERVICES}
+                  services={services}
                   onEdit={() => openEditDialog(professional)}
                   onDelete={() => setDeletingProfessional(professional)}
                 />
@@ -262,7 +316,7 @@ export default function ProfissionaisContent() {
         open={dialogOpen}
         onOpenChange={setDialogOpen}
         professional={editingProfessional}
-        serviceOptions={MOCK_SERVICES}
+        serviceOptions={services}
         onSubmit={saveProfessional}
       />
       <DeleteProfessionalDialog

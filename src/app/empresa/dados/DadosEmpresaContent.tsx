@@ -324,13 +324,7 @@ export default function DadosEmpresaContent() {
     <div className="relative min-h-screen overflow-hidden">
       <div className="pointer-events-none absolute -top-32 -right-32 h-96 w-96 rounded-full bg-accent/30 blur-3xl" />
       <CompanyHeader businessName={form.business_name || company?.business_name || ""} />
-      <main className="relative z-10 mx-auto max-w-5xl px-4 pb-12 pt-4 sm:px-6">
-        <Link
-          href="/empresa"
-          className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
-        >
-          <ArrowLeft className="h-4 w-4" /> Voltar ao Dashboard
-        </Link>
+      <main className="relative z-10 mx-auto max-w-7xl px-4 pb-12 pt-4 sm:px-6">
         <div className="glass mt-4 rounded-3xl p-6 sm:p-8">
           <h1 className="font-display text-2xl font-bold sm:text-3xl">Dados da Empresa</h1>
           <p className="mt-1 text-muted-foreground">Gerencie as informações do seu estabelecimento</p>

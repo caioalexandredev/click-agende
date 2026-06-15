@@ -150,7 +150,7 @@ export default function ServicosContent() {
       if (!response.ok) {
         throw new Error(
           responsePayload?.message ??
-            (editingService ? "Nao foi possivel atualizar o servico." : "Nao foi possivel cadastrar o servico."),
+          (editingService ? "Nao foi possivel atualizar o servico." : "Nao foi possivel cadastrar o servico."),
         );
       }
 
@@ -197,18 +197,11 @@ export default function ServicosContent() {
       <CompanyHeader businessName={company?.business_name ?? ""} />
 
       <main className="relative z-10 mx-auto max-w-7xl px-4 pb-12 pt-4 sm:px-6">
-        <Link
-          href="/empresa"
-          className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
-        >
-          <ArrowLeft className="h-4 w-4" /> Voltar ao Dashboard
-        </Link>
-
         <section className="mt-4 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div>
-            <h1 className="font-display text-2xl font-bold sm:text-3xl">Gerenciar Servicos</h1>
+            <h1 className="font-display text-2xl font-bold sm:text-3xl">Gerenciar Serviços</h1>
             <p className="mt-1 text-muted-foreground">
-              Cadastre e organize os servicos oferecidos pelo estabelecimento.
+              Cadastre e organize os serviços oferecidos pelo estabelecimento.
             </p>
           </div>
           <Button onClick={openCreateDialog} className="bg-gradient-primary">
