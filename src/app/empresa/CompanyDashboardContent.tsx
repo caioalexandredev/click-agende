@@ -5,23 +5,27 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { toast } from "sonner";
 import {
-  CalendarCheck,
-  LogOut,
-  Building2,
-  Users2,
-  Scissors,
-  LayoutDashboard,
-  Clock,
-  CheckCircle2,
-  XCircle,
   AlertCircle,
+  Building2,
+  CalendarCheck,
   CalendarDays,
+  CheckCircle2,
+  Clock,
+  LayoutDashboard,
+  Loader2,
+  LogOut,
   Menu,
+  Scissors,
+  Users2,
   X,
+  XCircle,
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { ThemeToggle } from "@/components/ThemeToggle";
+
 import { MiniCalendar, dateToYMD } from "@/components/MiniCalendar";
+import { ThemeToggle } from "@/components/ThemeToggle";
+import { Button } from "@/components/ui/button";
+
+type ApptStatus = "pending" | "cancelled" | "completed";
 
 type Appt = {
   id: string;
@@ -31,75 +35,23 @@ type Appt = {
   service_price: number;
   service_duration_min: number;
   scheduled_at: string;
-  status: "pending" | "confirmed" | "cancelled" | "completed";
+  status: ApptStatus;
 };
 
-function addDays(date: Date, days: number) {
-  const next = new Date(date);
-  next.setDate(date.getDate() + days);
-  return next;
-}
-
-function atTime(date: Date, hour: number, minute: number) {
-  const next = new Date(date);
-  next.setHours(hour, minute, 0, 0);
-  return next.toISOString();
-}
-
-const todayMock = new Date();
-
-const initialAppts: Appt[] = [
-  {
-    id: "appt-001",
-    client_name: "João Costa",
-    professional_name: "Ana Silva",
-    service_name: "Corte de Cabelo",
-    service_price: 50,
-    service_duration_min: 30,
-    scheduled_at: atTime(todayMock, 10, 0),
-    status: "confirmed",
-  },
-  {
-    id: "appt-002",
-    client_name: "Maria Lima",
-    professional_name: "Ana Silva",
-    service_name: "Manicure",
-    service_price: 35,
-    service_duration_min: 45,
-    scheduled_at: atTime(todayMock, 14, 30),
-    status: "pending",
-  },
-  {
-    id: "appt-003",
-    client_name: "Rafael Mendes",
-    professional_name: "Bruno Reis",
-    service_name: "Barba",
-    service_price: 30,
-    service_duration_min: 25,
-    scheduled_at: atTime(todayMock, 16, 0),
-    status: "pending",
-  },
-  {
-    id: "appt-004",
-    client_name: "Fernanda Rocha",
-    professional_name: "Camila Torres",
-    service_name: "Design de Sobrancelhas",
-    service_price: 45,
-    service_duration_min: 40,
-    scheduled_at: atTime(addDays(todayMock, 1), 9, 30),
-    status: "confirmed",
-  },
-  {
-    id: "appt-005",
-    client_name: "Paula Souza",
-    professional_name: "Luana Martins",
-    service_name: "Escova",
-    service_price: 70,
-    service_duration_min: 60,
-    scheduled_at: atTime(addDays(todayMock, 3), 11, 0),
-    status: "completed",
-  },
-];
+type AgendaResponse = {
+  id: string;
+  dataHora: string;
+  statusAgendamento: "AGENDADO" | "CANCELADO" | "FINALIZADO" | string;
+  tempoAtendimento?: number | null;
+  valorTotal?: number | null;
+  funcionario?: string | null;
+  cliente?: string | null;
+  servicos?: Array<{
+    nome?: string | null;
+    preco?: number | null;
+    duracao?: number | null;
+  }>;
+};
 
 function startOfDay(d: Date) {
   const x = new Date(d);
@@ -125,32 +77,75 @@ function hhmm(iso: string) {
   return new Date(iso).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
 }
 
+function mapStatus(status: AgendaResponse["statusAgendamento"]): ApptStatus {
+  if (status === "CANCELADO") return "cancelled";
+  if (status === "FINALIZADO") return "completed";
+  return "pending";
+}
+
+function mapAppointment(agenda: AgendaResponse): Appt {
+  const services = agenda.servicos ?? [];
+  const serviceNames = services.map((service) => service.nome).filter(Boolean).join(", ");
+  const servicePrice =
+    agenda.valorTotal ?? services.reduce((total, service) => total + Number(service.preco ?? 0), 0);
+  const serviceDuration =
+    agenda.tempoAtendimento ?? services.reduce((total, service) => total + Number(service.duracao ?? 0), 0);
+
+  return {
+    id: agenda.id,
+    client_name: agenda.cliente ?? "Cliente",
+    professional_name: agenda.funcionario ?? "Profissional",
+    service_name: serviceNames || "Serviço",
+    service_price: Number(servicePrice),
+    service_duration_min: Number(serviceDuration),
+    scheduled_at: agenda.dataHora,
+    status: mapStatus(agenda.statusAgendamento),
+  };
+}
+
 export default function CompanyDashboardContent() {
   const router = useRouter();
   const [businessName, setBusinessName] = useState("");
+  const [appts, setAppts] = useState<Appt[]>([]);
+  const [loadingDashboard, setLoadingDashboard] = useState(true);
+  const [navOpen, setNavOpen] = useState(false);
 
   const today = useMemo(() => new Date(), []);
   const [selected, setSelected] = useState<Date>(today);
   const [month, setMonth] = useState<Date>(new Date(today.getFullYear(), today.getMonth(), 1));
-  const [appts, setAppts] = useState<Appt[]>(initialAppts);
-  const [navOpen, setNavOpen] = useState(false);
 
   useEffect(() => {
     let active = true;
 
-    async function loadCompany() {
-      try {
-        const response = await fetch("/api/empresa/me");
-        if (!response.ok) return;
+    async function loadDashboard() {
+      setLoadingDashboard(true);
 
-        const payload = (await response.json()) as { nome?: string };
-        if (active) setBusinessName(payload.nome ?? "");
-      } catch {
-        
+      try {
+        const [companyResponse, agendaResponse] = await Promise.all([
+          fetch("/api/empresa/me"),
+          fetch("/api/empresa/agenda"),
+        ]);
+        const companyPayload = await companyResponse.json().catch(() => null);
+        const agendaPayload = await agendaResponse.json().catch(() => null);
+
+        if (!companyResponse.ok) {
+          throw new Error(companyPayload?.message ?? "Não foi possível carregar a empresa.");
+        }
+        if (!agendaResponse.ok) {
+          throw new Error(agendaPayload?.message ?? "Não foi possível carregar os agendamentos.");
+        }
+
+        if (!active) return;
+        setBusinessName(companyPayload?.nome ?? "");
+        setAppts((agendaPayload as AgendaResponse[]).map(mapAppointment));
+      } catch (error) {
+        toast.error(error instanceof Error ? error.message : "Não foi possível carregar o dashboard.");
+      } finally {
+        if (active) setLoadingDashboard(false);
       }
     }
 
-    void loadCompany();
+    void loadDashboard();
 
     return () => {
       active = false;
@@ -197,13 +192,25 @@ export default function CompanyDashboardContent() {
 
   const todayCount = todayAppts.filter((a) => a.status !== "cancelled").length;
   const todayPending = todayAppts.filter((a) => a.status === "pending").length;
-  const todayConfirmed = todayAppts.filter((a) => a.status === "confirmed").length;
+  const todayCompleted = todayAppts.filter((a) => a.status === "completed").length;
 
-  function updateStatus(id: string, status: Appt["status"]) {
-    setAppts((current) =>
-      current.map((appt) => (appt.id === id ? { ...appt, status } : appt)),
-    );
-    toast.success(status === "confirmed" ? "Agendamento confirmado" : "Agendamento cancelado");
+  async function updateStatus(id: string, status: Exclude<ApptStatus, "pending">) {
+    const endpoint = status === "completed" ? "confirmar" : "cancelar";
+
+    try {
+      const response = await fetch(`/api/empresa/agenda/${id}/${endpoint}`, { method: "PATCH" });
+      const payload = await response.json().catch(() => null);
+
+      if (!response.ok) {
+        throw new Error(payload?.message ?? "Não foi possível atualizar o agendamento.");
+      }
+
+      const updated = mapAppointment(payload as AgendaResponse);
+      setAppts((current) => current.map((appt) => (appt.id === updated.id ? updated : appt)));
+      toast.success(status === "completed" ? "Agendamento finalizado." : "Agendamento cancelado.");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Não foi possível atualizar o agendamento.");
+    }
   }
 
   async function signOut() {
@@ -212,40 +219,12 @@ export default function CompanyDashboardContent() {
     router.push("/empresa/login");
   }
 
-  function seedDemo() {
-    const base = new Date(selected);
-    base.setHours(10, 0, 0, 0);
-    const second = new Date(selected);
-    second.setHours(14, 30, 0, 0);
-
-    const demoAppts: Appt[] = [
-      {
-        id: `demo-${dateToYMD(selected)}-1`,
-        client_name: "João Costa",
-        professional_name: "Ana Silva",
-        service_name: "Corte de Cabelo",
-        service_price: 50,
-        service_duration_min: 30,
-        scheduled_at: base.toISOString(),
-        status: "confirmed",
-      },
-      {
-        id: `demo-${dateToYMD(selected)}-2`,
-        client_name: "Maria Lima",
-        professional_name: "Ana Silva",
-        service_name: "Manicure",
-        service_price: 35,
-        service_duration_min: 45,
-        scheduled_at: second.toISOString(),
-        status: "pending",
-      },
-    ];
-
-    setAppts((current) => [
-      ...current.filter((appt) => !demoAppts.some((demo) => demo.id === appt.id)),
-      ...demoAppts,
-    ]);
-    toast.success("Agendamentos de exemplo adicionados");
+  if (loadingDashboard) {
+    return (
+      <div className="grid min-h-screen place-items-center">
+        <Loader2 className="h-6 w-6 animate-spin text-primary" />
+      </div>
+    );
   }
 
   return (
@@ -275,8 +254,8 @@ export default function CompanyDashboardContent() {
             tone="warning"
           />
           <SummaryCard
-            label="Confirmados"
-            value={todayConfirmed}
+            label="Finalizados"
+            value={todayCompleted}
             icon={<CheckCircle2 className="h-5 w-5" />}
             tone="success"
           />
@@ -294,20 +273,15 @@ export default function CompanyDashboardContent() {
           </div>
 
           <div className="glass rounded-3xl p-5">
-            <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3">
+            <div className="grid grid-cols-[minmax(0,1fr)] items-center gap-3">
               <div className="min-w-0">
                 <h2 className="truncate font-display text-lg font-bold sm:text-xl">
-                  Agendamentos — {brDate(selected)}
+                  Agendamentos - {brDate(selected)}
                 </h2>
                 <p className="text-sm text-muted-foreground">
                   {dayAppts.length} item{dayAppts.length === 1 ? "" : "s"} no dia
                 </p>
               </div>
-              {dayAppts.length === 0 ? (
-                <Button variant="outline" size="sm" onClick={seedDemo} className="shrink-0">
-                  Exemplos
-                </Button>
-              ) : null}
             </div>
 
             <div className="mt-5 space-y-3">
@@ -479,7 +453,7 @@ function AppointmentItem({
   onUpdate,
 }: {
   a: Appt;
-  onUpdate: (id: string, s: Appt["status"]) => void;
+  onUpdate: (id: string, s: Exclude<ApptStatus, "pending">) => void;
 }) {
   return (
     <div className="glass-soft rounded-2xl p-4">
@@ -493,7 +467,7 @@ function AppointmentItem({
             Profissional: <span className="text-foreground">{a.professional_name}</span>
           </p>
           <p className="text-sm text-muted-foreground">
-            {a.service_name} — {brl(Number(a.service_price))} ({a.service_duration_min}min)
+            {a.service_name} - {brl(Number(a.service_price))} ({a.service_duration_min}min)
           </p>
         </div>
         <div className="shrink-0 text-right">
@@ -512,9 +486,9 @@ function AppointmentItem({
           <Button
             size="sm"
             className="bg-gradient-primary h-9 flex-1"
-            onClick={() => onUpdate(a.id, "confirmed")}
+            onClick={() => onUpdate(a.id, "completed")}
           >
-            <CheckCircle2 className="mr-1.5 h-4 w-4" /> Confirmar
+            <CheckCircle2 className="mr-1.5 h-4 w-4" /> Finalizar
           </Button>
           <Button
             size="sm"
@@ -530,23 +504,19 @@ function AppointmentItem({
   );
 }
 
-function StatusBadge({ status }: { status: Appt["status"] }) {
+function StatusBadge({ status }: { status: ApptStatus }) {
   const map = {
     pending: {
-      label: "Pendente",
+      label: "Agendado",
       cls: "bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/30",
-    },
-    confirmed: {
-      label: "Confirmado",
-      cls: "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/30",
     },
     cancelled: {
       label: "Cancelado",
       cls: "bg-destructive/15 text-destructive border-destructive/30",
     },
     completed: {
-      label: "Concluído",
-      cls: "bg-primary/15 text-primary border-primary/30",
+      label: "Finalizado",
+      cls: "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/30",
     },
   } as const;
   const m = map[status];
@@ -566,7 +536,7 @@ function EmptyDay() {
       <CalendarDays className="h-10 w-10 text-muted-foreground/50" />
       <p className="mt-3 font-display text-base font-semibold">Nenhum agendamento</p>
       <p className="mt-1 max-w-sm text-sm text-muted-foreground">
-        Não há agendamentos para a data selecionada. Use o botão Exemplos para popular dados de teste.
+        Não há agendamentos para a data selecionada.
       </p>
     </div>
   );
