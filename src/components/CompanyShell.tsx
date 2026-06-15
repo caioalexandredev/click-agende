@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import {
   CalendarCheck,
@@ -22,13 +22,51 @@ type Company = {
   business_name: string;
 };
 
-const mockCompany: Company = {
-  id: "mock-company-1",
-  business_name: "ClickAgende Studio",
+type CompanyResponse = {
+  id: string;
+  nome: string;
 };
 
 export function useCompanyGuard() {
-  return { company: mockCompany, loading: false };
+  const [company, setCompany] = useState<Company | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let active = true;
+
+    async function loadCompany() {
+      try {
+        const response = await fetch("/api/empresa/me");
+
+        if (response.status === 401 || response.status === 403) {
+          setCompany(null);
+          return;
+        }
+
+        if (!response.ok) throw new Error("Nao foi possivel carregar a empresa.");
+
+        const payload = (await response.json()) as CompanyResponse;
+        if (!active) return;
+
+        setCompany({
+          id: payload.id,
+          business_name: payload.nome,
+        });
+      } catch {
+        if (active) setCompany(null);
+      } finally {
+        if (active) setLoading(false);
+      }
+    }
+
+    void loadCompany();
+
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  return { company, loading };
 }
 
 export function CompanyHeader({ businessName }: { businessName: string }) {

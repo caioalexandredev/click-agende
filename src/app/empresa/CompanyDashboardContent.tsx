@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { toast } from "sonner";
 import {
   CalendarCheck,
@@ -127,13 +127,35 @@ function hhmm(iso: string) {
 
 export default function CompanyDashboardContent() {
   const router = useRouter();
-  const [businessName] = useState("ClickAgende Studio");
+  const [businessName, setBusinessName] = useState("");
 
   const today = useMemo(() => new Date(), []);
   const [selected, setSelected] = useState<Date>(today);
   const [month, setMonth] = useState<Date>(new Date(today.getFullYear(), today.getMonth(), 1));
   const [appts, setAppts] = useState<Appt[]>(initialAppts);
   const [navOpen, setNavOpen] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+
+    async function loadCompany() {
+      try {
+        const response = await fetch("/api/empresa/me");
+        if (!response.ok) return;
+
+        const payload = (await response.json()) as { nome?: string };
+        if (active) setBusinessName(payload.nome ?? "");
+      } catch {
+        
+      }
+    }
+
+    void loadCompany();
+
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const monthAppts = useMemo(() => {
     const from = new Date(month.getFullYear(), month.getMonth(), 1);

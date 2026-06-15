@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   ArrowLeft,
   Building2,
@@ -34,7 +34,40 @@ type Form = {
   description: string;
 };
 
-const UFS = [
+type CityResponse = {
+  id: number;
+  nome: string;
+  uf: string;
+};
+
+type CompanyResponse = {
+  id: string;
+  nome: string;
+  cnpj: string;
+  descricao: string;
+  email: string;
+  telefone: string;
+  endereco?: {
+    cep?: string;
+    endereco?: string;
+    idCidade?: number;
+    uf?: string;
+  };
+};
+
+const INITIAL_FORM: Form = {
+  business_name: "",
+  cnpj: "",
+  phone: "",
+  email: "",
+  cep: "",
+  address: "",
+  uf: "",
+  city: "",
+  description: "",
+};
+
+const UF_OPTIONS = [
   "AC",
   "AL",
   "AP",
@@ -62,26 +95,7 @@ const UFS = [
   "SP",
   "SE",
   "TO",
-];
-
-const CITIES_BY_UF: Record<string, string[]> = {
-  TO: ["Palmas", "Araguaína", "Gurupi", "Porto Nacional"],
-  SP: ["São Paulo", "Campinas", "Santos", "Ribeirão Preto"],
-  RJ: ["Rio de Janeiro", "Niterói", "Petrópolis", "Cabo Frio"],
-  GO: ["Goiânia", "Aparecida de Goiânia", "Anápolis", "Rio Verde"],
-};
-
-const INITIAL_FORM: Form = {
-  business_name: "ClickAgende Studio",
-  cnpj: "11.444.777/0001-61",
-  phone: "(63) 3456-7890",
-  email: "contato@clickagende.com",
-  cep: "77000-000",
-  address: "Rua das Flores",
-  uf: "TO",
-  city: "Palmas",
-  description: "Estúdio especializado em beleza, bem-estar e atendimento com hora marcada.",
-};
+].map((uf) => ({ value: uf, label: uf }));
 
 function onlyDigits(value: string) {
   return value.replace(/\D/g, "");
@@ -128,14 +142,95 @@ function validateCNPJ(value: string) {
   return firstDigit === Number(cnpj[12]) && secondDigit === Number(cnpj[13]);
 }
 
+function companyToForm(data: CompanyResponse): Form {
+  return {
+    business_name: data.nome ?? "",
+    cnpj: maskCNPJ(data.cnpj ?? ""),
+    phone: maskPhone(data.telefone ?? ""),
+    email: data.email ?? "",
+    cep: maskCEP(data.endereco?.cep ?? ""),
+    address: data.endereco?.endereco ?? "",
+    uf: data.endereco?.uf ?? "",
+    city: data.endereco?.idCidade ? String(data.endereco.idCidade) : "",
+    description: data.descricao ?? "",
+  };
+}
+
 export default function DadosEmpresaContent() {
   const { company, loading } = useCompanyGuard();
   const [form, setForm] = useState<Form>(INITIAL_FORM);
   const [original, setOriginal] = useState<Form>(INITIAL_FORM);
   const [errors, setErrors] = useState<Partial<Record<keyof Form, string>>>({});
+  const [cities, setCities] = useState<CityResponse[]>([]);
+  const [isLoadingCompany, setIsLoadingCompany] = useState(true);
+  const [isLoadingCities, setIsLoadingCities] = useState(false);
   const [saving, setSaving] = useState(false);
 
-  const cidades = form.uf ? (CITIES_BY_UF[form.uf] ?? [`Cidade mockada - ${form.uf}`]) : [];
+  const cityOptions = useMemo(
+    () => cities.map((city) => ({ value: String(city.id), label: city.nome })),
+    [cities],
+  );
+
+  const cityPlaceholder = useMemo(() => {
+    if (!form.uf) return "Selecione a UF primeiro";
+    if (isLoadingCities) return "Carregando cidades...";
+    return "Selecione a cidade";
+  }, [form.uf, isLoadingCities]);
+
+  async function loadCitiesByUf(uf: string) {
+    if (!uf) {
+      setCities([]);
+      return;
+    }
+
+    setIsLoadingCities(true);
+
+    try {
+      const response = await fetch(`/api/cidades/${uf}`);
+      if (!response.ok) throw new Error("Falha ao carregar cidades.");
+
+      setCities((await response.json()) as CityResponse[]);
+    } catch {
+      setCities([]);
+      toast.error("Nao foi possivel carregar as cidades desta UF.");
+    } finally {
+      setIsLoadingCities(false);
+    }
+  }
+
+  useEffect(() => {
+    let active = true;
+
+    async function loadCompany() {
+      setIsLoadingCompany(true);
+
+      try {
+        const response = await fetch("/api/empresa/me");
+        const payload = await response.json().catch(() => null);
+
+        if (!response.ok) {
+          throw new Error(payload?.message ?? "Nao foi possivel carregar os dados da empresa.");
+        }
+
+        const nextForm = companyToForm(payload as CompanyResponse);
+        if (!active) return;
+
+        setForm(nextForm);
+        setOriginal(nextForm);
+        if (nextForm.uf) await loadCitiesByUf(nextForm.uf);
+      } catch (error) {
+        toast.error(error instanceof Error ? error.message : "Nao foi possivel carregar os dados da empresa.");
+      } finally {
+        if (active) setIsLoadingCompany(false);
+      }
+    }
+
+    void loadCompany();
+
+    return () => {
+      active = false;
+    };
+  }, []);
 
   function set<K extends keyof Form>(key: K, value: Form[K]) {
     setForm((current) => ({ ...current, [key]: value }));
@@ -145,35 +240,36 @@ export default function DadosEmpresaContent() {
   function validate(): boolean {
     const nextErrors: Partial<Record<keyof Form, string>> = {};
 
-    if (!form.business_name.trim()) nextErrors.business_name = "Nome é obrigatório.";
-    else if (form.business_name.length > 150) nextErrors.business_name = "Máximo de 150 caracteres.";
+    if (!form.business_name.trim()) nextErrors.business_name = "Nome e obrigatorio.";
+    else if (form.business_name.length > 150) nextErrors.business_name = "Maximo de 150 caracteres.";
 
-    if (!form.cnpj.trim()) nextErrors.cnpj = "CNPJ é obrigatório.";
-    else if (!validateCNPJ(form.cnpj)) nextErrors.cnpj = "Insira um CNPJ válido.";
+    if (!form.cnpj.trim()) nextErrors.cnpj = "CNPJ e obrigatorio.";
+    else if (!validateCNPJ(form.cnpj)) nextErrors.cnpj = "Insira um CNPJ valido.";
 
-    if (!form.phone.trim()) nextErrors.phone = "Telefone é obrigatório.";
+    if (!form.phone.trim()) nextErrors.phone = "Telefone e obrigatorio.";
     else if (![10, 11].includes(onlyDigits(form.phone).length)) {
-      nextErrors.phone = "Digite um telefone válido.";
+      nextErrors.phone = "Digite um telefone valido.";
     }
 
-    if (!form.email.trim()) nextErrors.email = "Email é obrigatório.";
-    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) nextErrors.email = "Email inválido.";
+    if (!form.email.trim()) nextErrors.email = "Email e obrigatorio.";
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) nextErrors.email = "Email invalido.";
 
-    if (!form.cep.trim()) nextErrors.cep = "CEP é obrigatório.";
-    else if (!/^\d{5}-?\d{3}$/.test(form.cep)) nextErrors.cep = "Digite um CEP válido.";
+    if (!form.cep.trim()) nextErrors.cep = "CEP e obrigatorio.";
+    else if (!/^\d{5}-?\d{3}$/.test(form.cep)) nextErrors.cep = "Digite um CEP valido.";
 
-    if (!form.address.trim()) nextErrors.address = "O endereço é obrigatório.";
-    else if (form.address.length > 200) nextErrors.address = "Máximo de 200 caracteres.";
+    if (!form.address.trim()) nextErrors.address = "O endereco e obrigatorio.";
+    else if (form.address.length > 200) nextErrors.address = "Maximo de 200 caracteres.";
 
-    if (!form.uf) nextErrors.uf = "UF é obrigatória.";
-    if (!form.city.trim()) nextErrors.city = "Cidade é obrigatória.";
-    if (form.description.length > 500) nextErrors.description = "Máximo de 500 caracteres.";
+    if (!form.uf) nextErrors.uf = "UF e obrigatoria.";
+    if (!form.city.trim()) nextErrors.city = "Cidade e obrigatoria.";
+    if (!form.description.trim()) nextErrors.description = "Descricao e obrigatoria.";
+    else if (form.description.length > 500) nextErrors.description = "Maximo de 500 caracteres.";
 
     setErrors(nextErrors);
     return Object.keys(nextErrors).length === 0;
   }
 
-  function save() {
+  async function save() {
     if (!validate()) {
       toast.error("Corrija os campos destacados.");
       return;
@@ -181,25 +277,53 @@ export default function DadosEmpresaContent() {
 
     setSaving(true);
 
-    window.setTimeout(() => {
-      setSaving(false);
-      setOriginal(form);
+    try {
+      const response = await fetch("/api/empresa/me", {
+        method: "PUT",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          nome: form.business_name,
+          cnpj: form.cnpj,
+          telefone: form.phone,
+          descricao: form.description,
+          email: form.email,
+          endereco: {
+            cep: form.cep,
+            endereco: form.address,
+            idCidade: Number(form.city),
+          },
+        }),
+      });
+      const payload = await response.json().catch(() => null);
+
+      if (!response.ok) {
+        throw new Error(payload?.message ?? "Nao foi possivel atualizar os dados da empresa.");
+      }
+
+      const nextForm = companyToForm(payload as CompanyResponse);
+      setForm(nextForm);
+      setOriginal(nextForm);
+      if (nextForm.uf) await loadCitiesByUf(nextForm.uf);
       toast.success("Empresa atualizada com sucesso!");
-    }, 500);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Nao foi possivel atualizar os dados da empresa.");
+    } finally {
+      setSaving(false);
+    }
   }
 
   function cancel() {
     setForm(original);
     setErrors({});
-    toast.info("Alterações descartadas.");
+    toast.info("Alteracoes descartadas.");
   }
 
-  if (loading) return <FullLoading />;
+  if (loading || isLoadingCompany) return <FullLoading />;
 
   return (
     <div className="relative min-h-screen overflow-hidden">
       <div className="pointer-events-none absolute -top-32 -right-32 h-96 w-96 rounded-full bg-accent/30 blur-3xl" />
-      <CompanyHeader businessName={company?.business_name ?? ""} />
+      <CompanyHeader businessName={form.business_name || company?.business_name || ""} />
       <main className="relative z-10 mx-auto max-w-5xl px-4 pb-12 pt-4 sm:px-6">
         <Link
           href="/empresa"
@@ -209,7 +333,7 @@ export default function DadosEmpresaContent() {
         </Link>
         <div className="glass mt-4 rounded-3xl p-6 sm:p-8">
           <h1 className="font-display text-2xl font-bold sm:text-3xl">Dados da Empresa</h1>
-          <p className="mt-1 text-muted-foreground">Gerencie as informações do seu estabelecimento</p>
+          <p className="mt-1 text-muted-foreground">Gerencie as informacoes do seu estabelecimento</p>
 
           <div className="mt-6 grid gap-5 md:grid-cols-2">
             <FormInput
@@ -268,7 +392,7 @@ export default function DadosEmpresaContent() {
 
             <FormInput
               id="address"
-              label="Endereço Completo"
+              label="Endereco Completo"
               error={errors.address}
               value={form.address}
               maxLength={200}
@@ -281,21 +405,22 @@ export default function DadosEmpresaContent() {
               id="uf"
               label="UF"
               placeholder="Selecione..."
-              options={UFS.map((uf) => ({ value: uf, label: uf }))}
+              options={UF_OPTIONS}
               error={errors.uf}
               value={form.uf}
               onValueChange={(value) => {
                 set("uf", value);
                 set("city", "");
+                void loadCitiesByUf(value);
               }}
             />
 
             <FormSelect
               id="city"
               label="Cidade"
-              placeholder={!form.uf ? "Selecione a UF primeiro" : "Selecione a cidade"}
-              options={cidades.map((cidade) => ({ value: cidade, label: cidade }))}
-              disabled={!form.uf}
+              placeholder={cityPlaceholder}
+              options={cityOptions}
+              disabled={!form.uf || isLoadingCities}
               error={errors.city}
               value={form.city}
               onValueChange={(value) => set("city", value)}
@@ -303,7 +428,7 @@ export default function DadosEmpresaContent() {
 
             <FormTextarea
               id="description"
-              label="Descrição"
+              label="Descricao"
               error={errors.description}
               hint={`${form.description.length}/500`}
               wrapperClassName="md:col-span-2"
@@ -325,7 +450,7 @@ export default function DadosEmpresaContent() {
               ) : (
                 <Save className="mr-1.5 h-4 w-4" />
               )}
-              Salvar Alterações
+              Salvar Alteracoes
             </Button>
           </div>
         </div>

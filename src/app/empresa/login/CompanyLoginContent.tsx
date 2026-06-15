@@ -54,7 +54,7 @@ export default function CompanyLoginPage() {
 
   return (
     <AuthShell
-      tone="company"
+      tone="client"
       badge="Painel da Empresa"
       title="Login Empresa"
       subtitle="Acesse o painel de gestão do seu estabelecimento"
