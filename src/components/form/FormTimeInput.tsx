@@ -9,6 +9,7 @@ import {
   useRef,
   useState,
 } from "react";
+import { createPortal } from "react-dom";
 
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
@@ -70,7 +71,11 @@ export const FormTimeInput = forwardRef<HTMLButtonElement, FormTimeInputProps>(
     ref,
   ) => {
     const [open, setOpen] = useState(false);
-    const containerRef = useRef<HTMLDivElement>(null);
+    const [triggerRect, setTriggerRect] = useState<DOMRect | null>(null);
+    const [mounted, setMounted] = useState(false);
+    const wrapperRef = useRef<HTMLDivElement>(null);
+    const popoverRef = useRef<HTMLDivElement>(null);
+    const buttonRef = useRef<HTMLButtonElement | null>(null);
     const parsedValue = parseTime(value);
     const selectedHour = parsedValue?.hour ?? 8;
     const selectedMinute = parsedValue?.minute ?? 0;
@@ -91,10 +96,19 @@ export const FormTimeInput = forwardRef<HTMLButtonElement, FormTimeInputProps>(
     }, [minuteStep, parsedValue]);
 
     useEffect(() => {
+      setMounted(true);
+    }, []);
+
+    useEffect(() => {
       if (!open) return;
 
+      function updatePosition() {
+        setTriggerRect(buttonRef.current?.getBoundingClientRect() ?? null);
+      }
+
       function handlePointerDown(event: PointerEvent) {
-        if (!containerRef.current?.contains(event.target as Node)) {
+        const target = event.target as Node;
+        if (!wrapperRef.current?.contains(target) && !popoverRef.current?.contains(target)) {
           setOpen(false);
           onBlur?.();
         }
@@ -107,12 +121,17 @@ export const FormTimeInput = forwardRef<HTMLButtonElement, FormTimeInputProps>(
         }
       }
 
+      updatePosition();
       document.addEventListener("pointerdown", handlePointerDown);
       document.addEventListener("keydown", handleKeyDown);
+      window.addEventListener("resize", updatePosition);
+      window.addEventListener("scroll", updatePosition, true);
 
       return () => {
         document.removeEventListener("pointerdown", handlePointerDown);
         document.removeEventListener("keydown", handleKeyDown);
+        window.removeEventListener("resize", updatePosition);
+        window.removeEventListener("scroll", updatePosition, true);
       };
     }, [onBlur, open]);
 
@@ -127,7 +146,7 @@ export const FormTimeInput = forwardRef<HTMLButtonElement, FormTimeInputProps>(
     }
 
     return (
-      <div ref={containerRef} className={cn("relative space-y-1.5", wrapperClassName)}>
+      <div ref={wrapperRef} className={cn("relative space-y-1.5", wrapperClassName)}>
         <Label htmlFor={id}>
           {required ? <span className="text-destructive">*</span> : null}
           {required ? " " : null}
@@ -137,7 +156,11 @@ export const FormTimeInput = forwardRef<HTMLButtonElement, FormTimeInputProps>(
         <input name={name} value={value ?? ""} readOnly hidden />
 
         <button
-          ref={ref}
+          ref={(node) => {
+            buttonRef.current = node;
+            if (typeof ref === "function") ref(node);
+            else if (ref) ref.current = node;
+          }}
           id={id}
           type="button"
           aria-describedby={errorId ?? hintId}
@@ -167,8 +190,15 @@ export const FormTimeInput = forwardRef<HTMLButtonElement, FormTimeInputProps>(
           />
         </button>
 
-        {open ? (
-          <div className="absolute left-0 right-0 top-[calc(100%+0.5rem)] z-50 rounded-xl border border-border bg-popover p-3 text-popover-foreground shadow-xl">
+        {open && mounted && triggerRect ? createPortal(
+          <div
+            ref={popoverRef}
+            className="pointer-events-auto fixed z-[80] w-[min(22rem,calc(100vw-2rem))] rounded-xl border border-border bg-popover p-3 text-popover-foreground shadow-xl"
+            style={{
+              left: Math.min(triggerRect.left, window.innerWidth - Math.min(352, window.innerWidth - 32) - 16),
+              top: triggerRect.bottom + 8,
+            }}
+          >
             <div className="grid grid-cols-[1fr_0.55fr] gap-3">
               <div>
                 <p className="mb-2 text-xs font-medium text-muted-foreground">Hora</p>
@@ -219,7 +249,8 @@ export const FormTimeInput = forwardRef<HTMLButtonElement, FormTimeInputProps>(
                 </div>
               </div>
             </div>
-          </div>
+          </div>,
+          document.body,
         ) : null}
 
         {error ? (

@@ -15,7 +15,11 @@ import {
   Loader2,
   LogOut,
   Menu,
+  Phone,
+  Plus,
+  Save,
   Scissors,
+  UserRound,
   Users2,
   X,
   XCircle,
@@ -23,6 +27,9 @@ import {
 
 import { MiniCalendar, dateToYMD } from "@/components/MiniCalendar";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { FormInput } from "@/components/form/FormInput";
+import { FormSelect } from "@/components/form/FormSelect";
+import { FormTextarea } from "@/components/form/FormTextarea";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -34,12 +41,24 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 type ApptStatus = "pending" | "cancelled" | "completed";
+
+type ManualStatus = "AGENDADO" | "CANCELADO" | "FINALIZADO";
 
 type Appt = {
   id: string;
   client_name: string;
+  professional_id?: string | null;
   professional_name: string;
   service_name: string;
   service_price: number;
@@ -54,6 +73,7 @@ type AgendaResponse = {
   statusAgendamento: "AGENDADO" | "CANCELADO" | "FINALIZADO" | string;
   tempoAtendimento?: number | null;
   valorTotal?: number | null;
+  idFuncionario?: string | null;
   funcionario?: string | null;
   cliente?: string | null;
   servicos?: Array<{
@@ -62,6 +82,75 @@ type AgendaResponse = {
     duracao?: number | null;
   }>;
 };
+
+type CompanyService = {
+  id: string;
+  name: string;
+  price: number;
+  durationMin: number;
+};
+
+type CompanyProfessional = {
+  id: string;
+  name: string;
+  role: string;
+  startTime: string;
+  endTime: string;
+  serviceIds: string[];
+};
+
+type ServiceResponse = {
+  id: number;
+  nome: string;
+  preco: number;
+  duracao: number;
+};
+
+type ProfessionalResponse = {
+  id: string;
+  nomeCompleto: string;
+  especialidade?: string | null;
+  horarioInicio?: string | null;
+  horarioFim?: string | null;
+  servicos?: ServiceResponse[];
+};
+
+type ClientLookupResponse = {
+  id: string;
+  nomeCompleto?: string | null;
+  cpf?: string | null;
+  telefone?: string | null;
+};
+
+type ManualAppointmentForm = {
+  clientName: string;
+  cpf: string;
+  phone: string;
+  professionalId: string;
+  serviceIds: string[];
+  date: string;
+  time: string;
+  status: ManualStatus;
+  observation: string;
+};
+
+const INITIAL_MANUAL_FORM: ManualAppointmentForm = {
+  clientName: "",
+  cpf: "",
+  phone: "",
+  professionalId: "",
+  serviceIds: [],
+  date: new Date().toISOString().slice(0, 10),
+  time: "",
+  status: "FINALIZADO",
+  observation: "",
+};
+
+const MANUAL_STATUS_OPTIONS = [
+  { value: "AGENDADO", label: "Agendado" },
+  { value: "FINALIZADO", label: "Finalizado" },
+  { value: "CANCELADO", label: "Cancelado" },
+];
 
 function startOfDay(d: Date) {
   const x = new Date(d);
@@ -87,10 +176,78 @@ function hhmm(iso: string) {
   return new Date(iso).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
 }
 
+function timeToMinutes(value: string) {
+  const [hour, minute] = value.split(":").map(Number);
+  return hour * 60 + minute;
+}
+
+function minutesToTime(value: number) {
+  return `${String(Math.floor(value / 60)).padStart(2, "0")}:${String(value % 60).padStart(2, "0")}`;
+}
+
+function onlyDigits(value: string) {
+  return value.replace(/\D/g, "");
+}
+
+function maskCpf(value: string) {
+  return onlyDigits(value)
+    .slice(0, 11)
+    .replace(/^(\d{3})(\d)/, "$1.$2")
+    .replace(/^(\d{3})\.(\d{3})(\d)/, "$1.$2.$3")
+    .replace(/\.(\d{3})(\d)/, ".$1-$2");
+}
+
+function maskPhone(value: string) {
+  const digits = onlyDigits(value).slice(0, 11);
+
+  if (digits.length <= 10) {
+    return digits.replace(/^(\d{2})(\d)/, "($1) $2").replace(/(\d{4})(\d)/, "$1-$2");
+  }
+
+  return digits.replace(/^(\d{2})(\d)/, "($1) $2").replace(/(\d{5})(\d)/, "$1-$2");
+}
+
+function isValidCpf(value: string) {
+  const cpf = onlyDigits(value);
+  if (cpf.length !== 11 || /^(\d)\1+$/.test(cpf)) return false;
+
+  const calc = (base: string, factor: number) => {
+    let total = 0;
+    for (const digit of base) {
+      total += Number(digit) * factor;
+      factor -= 1;
+    }
+    const result = (total * 10) % 11;
+    return result === 10 ? 0 : result;
+  };
+
+  return calc(cpf.slice(0, 9), 10) === Number(cpf[9]) && calc(cpf.slice(0, 10), 11) === Number(cpf[10]);
+}
+
 function mapStatus(status: AgendaResponse["statusAgendamento"]): ApptStatus {
   if (status === "CANCELADO") return "cancelled";
   if (status === "FINALIZADO") return "completed";
   return "pending";
+}
+
+function mapCompanyService(service: ServiceResponse): CompanyService {
+  return {
+    id: String(service.id),
+    name: service.nome,
+    price: Number(service.preco),
+    durationMin: Number(service.duracao),
+  };
+}
+
+function mapCompanyProfessional(professional: ProfessionalResponse): CompanyProfessional {
+  return {
+    id: professional.id,
+    name: professional.nomeCompleto,
+    role: professional.especialidade ?? "Profissional",
+    startTime: professional.horarioInicio?.slice(0, 5) || "08:00",
+    endTime: professional.horarioFim?.slice(0, 5) || "18:00",
+    serviceIds: professional.servicos?.map((service) => String(service.id)) ?? [],
+  };
 }
 
 function mapAppointment(agenda: AgendaResponse): Appt {
@@ -104,6 +261,7 @@ function mapAppointment(agenda: AgendaResponse): Appt {
   return {
     id: agenda.id,
     client_name: agenda.cliente ?? "Cliente",
+    professional_id: agenda.idFuncionario ?? null,
     professional_name: agenda.funcionario ?? "Profissional",
     service_name: serviceNames || "Serviço",
     service_price: Number(servicePrice),
@@ -123,6 +281,12 @@ export default function CompanyDashboardContent() {
     appointment: Appt;
     status: Exclude<ApptStatus, "pending">;
   } | null>(null);
+  const [manualOpen, setManualOpen] = useState(false);
+  const [manualResources, setManualResources] = useState<{
+    professionals: CompanyProfessional[];
+    services: CompanyService[];
+  }>({ professionals: [], services: [] });
+  const [loadingManualResources, setLoadingManualResources] = useState(false);
 
   const today = useMemo(() => new Date(), []);
   const [selected, setSelected] = useState<Date>(today);
@@ -228,6 +392,48 @@ export default function CompanyDashboardContent() {
     }
   }
 
+  async function openManualDialog() {
+    setManualOpen(true);
+
+    if (manualResources.professionals.length || manualResources.services.length) return;
+
+    setLoadingManualResources(true);
+
+    try {
+      const [professionalsResponse, servicesResponse] = await Promise.all([
+        fetch("/api/empresa/profissionais"),
+        fetch("/api/empresa/servicos"),
+      ]);
+      const professionalsPayload = await professionalsResponse.json().catch(() => null);
+      const servicesPayload = await servicesResponse.json().catch(() => null);
+
+      if (!professionalsResponse.ok) {
+        throw new Error(professionalsPayload?.message ?? "Não foi possível carregar os profissionais.");
+      }
+
+      if (!servicesResponse.ok) {
+        throw new Error(servicesPayload?.message ?? "Não foi possível carregar os serviços.");
+      }
+
+      setManualResources({
+        professionals: (professionalsPayload as ProfessionalResponse[]).map(mapCompanyProfessional),
+        services: (servicesPayload as ServiceResponse[]).map(mapCompanyService),
+      });
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Não foi possível carregar o formulário.");
+    } finally {
+      setLoadingManualResources(false);
+    }
+  }
+
+  function handleManualCreated(agenda: AgendaResponse) {
+    const created = mapAppointment(agenda);
+    setAppts((current) => [created, ...current]);
+    setSelected(new Date(created.scheduled_at));
+    setManualOpen(false);
+    toast.success("Agendamento manual cadastrado.");
+  }
+
   async function signOut() {
     await fetch("/api/auth/logout", { method: "POST" });
     toast.success("Sessão encerrada.");
@@ -324,6 +530,26 @@ export default function CompanyDashboardContent() {
         onConfirm={() => {
           if (pendingAction) void updateStatus(pendingAction.appointment.id, pendingAction.status);
         }}
+      />
+
+      <button
+        type="button"
+        title="Adicionar Atendimento"
+        aria-label="Adicionar Atendimento"
+        onClick={openManualDialog}
+        className="bg-gradient-primary fixed bottom-6 right-6 z-30 grid h-14 w-14 place-items-center rounded-full text-primary-foreground shadow-xl shadow-primary/25 transition hover:brightness-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+      >
+        <Plus className="h-6 w-6" />
+      </button>
+
+      <ManualAppointmentDialog
+        open={manualOpen}
+        onOpenChange={setManualOpen}
+        loadingResources={loadingManualResources}
+        professionals={manualResources.professionals}
+        services={manualResources.services}
+        appointments={appts}
+        onCreated={handleManualCreated}
       />
     </div>
   );
@@ -576,6 +802,440 @@ function AppointmentActionDialog({
   );
 }
 
+function ManualAppointmentDialog({
+  open,
+  onOpenChange,
+  loadingResources,
+  professionals,
+  services,
+  appointments,
+  onCreated,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  loadingResources: boolean;
+  professionals: CompanyProfessional[];
+  services: CompanyService[];
+  appointments: Appt[];
+  onCreated: (agenda: AgendaResponse) => void;
+}) {
+  const [form, setForm] = useState<ManualAppointmentForm>(INITIAL_MANUAL_FORM);
+  const [errors, setErrors] = useState<Partial<Record<keyof ManualAppointmentForm, string>>>({});
+  const [saving, setSaving] = useState(false);
+  const [existingClient, setExistingClient] = useState<ClientLookupResponse | null>(null);
+  const [loadingClient, setLoadingClient] = useState(false);
+
+  const selectedProfessional = professionals.find((professional) => professional.id === form.professionalId);
+  const availableServices = selectedProfessional
+    ? services.filter((service) => selectedProfessional.serviceIds.includes(service.id))
+    : services;
+  const selectedServices = services.filter((service) => form.serviceIds.includes(service.id));
+  const totalDuration = selectedServices.reduce((total, service) => total + service.durationMin, 0);
+  const totalPrice = selectedServices.reduce((total, service) => total + service.price, 0);
+  const slots = buildManualSlots({
+    professional: selectedProfessional,
+    date: form.date,
+    selectedServices,
+    appointments,
+  });
+  const hasRequiredScheduleFields = Boolean(form.professionalId && form.date && form.serviceIds.length > 0);
+  const shouldShowNoSlots = hasRequiredScheduleFields && slots.length === 0;
+  const isSelectedTimeAvailable = Boolean(form.time && slots.includes(form.time));
+
+  useEffect(() => {
+    const cpf = onlyDigits(form.cpf);
+
+    if (cpf.length !== 11 || !isValidCpf(cpf)) {
+      return;
+    }
+
+    let active = true;
+    const timeout = window.setTimeout(async () => {
+      setLoadingClient(true);
+
+      try {
+        const response = await fetch(`/api/empresa/clientes/cpf/${cpf}`);
+
+        if (response.status === 404) {
+          if (active) setExistingClient(null);
+          return;
+        }
+
+        const payload = await response.json().catch(() => null);
+
+        if (!response.ok) {
+          throw new Error(payload?.message ?? "Não foi possível buscar o cliente.");
+        }
+
+        if (!active || !payload) return;
+
+        const cliente = payload as ClientLookupResponse;
+        setExistingClient(cliente);
+        setForm((current) => {
+          if (onlyDigits(current.cpf) !== cpf) return current;
+
+          return {
+            ...current,
+            clientName: cliente.nomeCompleto ?? current.clientName,
+            phone: current.phone || maskPhone(cliente.telefone ?? ""),
+          };
+        });
+        setErrors((current) => ({ ...current, clientName: undefined }));
+      } catch (error) {
+        if (active) {
+          setExistingClient(null);
+          toast.error(error instanceof Error ? error.message : "Não foi possível buscar o cliente.");
+        }
+      } finally {
+        if (active) setLoadingClient(false);
+      }
+    }, 350);
+
+    return () => {
+      active = false;
+      window.clearTimeout(timeout);
+    };
+  }, [form.cpf]);
+
+  function set<K extends keyof ManualAppointmentForm>(key: K, value: ManualAppointmentForm[K]) {
+    setForm((current) => ({ ...current, [key]: value }));
+    setErrors((current) => ({ ...current, [key]: undefined }));
+  }
+
+  function reset() {
+    setForm(INITIAL_MANUAL_FORM);
+    setErrors({});
+    setExistingClient(null);
+    setLoadingClient(false);
+  }
+
+  function close(openNext: boolean) {
+    onOpenChange(openNext);
+    if (!openNext) reset();
+  }
+
+  function validate() {
+    const nextErrors: Partial<Record<keyof ManualAppointmentForm, string>> = {};
+
+    if (!form.clientName.trim()) nextErrors.clientName = "Nome do cliente é obrigatório.";
+    else if (form.clientName.length > 150) nextErrors.clientName = "Máximo de 150 caracteres.";
+
+    if (!form.cpf.trim()) nextErrors.cpf = "CPF é obrigatório.";
+    else if (!isValidCpf(form.cpf)) nextErrors.cpf = "Digite um CPF válido.";
+
+    if (!form.phone.trim()) nextErrors.phone = "Telefone é obrigatório.";
+    else if (![10, 11].includes(onlyDigits(form.phone).length)) {
+      nextErrors.phone = "Digite um telefone válido.";
+    }
+
+    if (!form.professionalId) nextErrors.professionalId = "Selecione um profissional.";
+    if (form.serviceIds.length === 0) nextErrors.serviceIds = "Selecione ao menos um serviço.";
+    if (!form.date) nextErrors.date = "Data é obrigatória.";
+    if (shouldShowNoSlots) nextErrors.time = "Não há horários disponíveis para essa combinação.";
+    else if (!form.time) nextErrors.time = "Horário é obrigatório.";
+    else if (hasRequiredScheduleFields && !isSelectedTimeAvailable) {
+      nextErrors.time = "Selecione um horário disponível.";
+    }
+    if (!form.status) nextErrors.status = "Status é obrigatório.";
+    if (form.observation.length > 300) nextErrors.observation = "Máximo de 300 caracteres.";
+
+    setErrors(nextErrors);
+    return Object.keys(nextErrors).length === 0;
+  }
+
+  function toggleService(serviceId: string, checked: boolean) {
+    setForm((current) => ({
+      ...current,
+      serviceIds: checked
+        ? [...current.serviceIds, serviceId]
+        : current.serviceIds.filter((id) => id !== serviceId),
+      time: "",
+    }));
+    setErrors((current) => ({ ...current, serviceIds: undefined, time: undefined }));
+  }
+
+  async function submit() {
+    if (!validate()) {
+      toast.error("Corrija os campos destacados.");
+      return;
+    }
+
+    setSaving(true);
+
+    try {
+      const response = await fetch("/api/empresa/agenda/manual", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          nomeCliente: form.clientName.trim(),
+          cpfCliente: form.cpf,
+          telefoneCliente: form.phone,
+          idFuncionario: form.professionalId,
+          dataHoraAgendamento: `${form.date}T${form.time}:00`,
+          servicos: form.serviceIds.map(Number),
+          statusAgendamento: form.status,
+          observacao: form.observation.trim() || null,
+        }),
+      });
+      const payload = await response.json().catch(() => null);
+
+      if (!response.ok) {
+        throw new Error(payload?.message ?? "Não foi possível cadastrar o agendamento manual.");
+      }
+
+      onCreated(payload as AgendaResponse);
+      reset();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Não foi possível cadastrar o agendamento manual.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={close}>
+      <DialogContent className="max-h-[92vh] overflow-y-auto sm:max-w-3xl">
+        <DialogHeader>
+          <DialogTitle>Adicionar atendimento</DialogTitle>
+          <DialogDescription>
+            Cadastre um atendimento manual e associe ao cliente por CPF para vínculo futuro.
+          </DialogDescription>
+        </DialogHeader>
+
+        {loadingResources ? (
+          <div className="grid min-h-72 place-items-center">
+            <Loader2 className="h-6 w-6 animate-spin text-primary" />
+          </div>
+        ) : (
+          <div className="grid gap-5">
+            <section className="grid gap-4 sm:grid-cols-2">
+              <FormInput
+                id="manual-client-cpf"
+                required
+                label="CPF"
+                value={form.cpf}
+                error={errors.cpf}
+                hint={
+                  loadingClient
+                    ? "Buscando cliente..."
+                    : existingClient
+                      ? "Cliente já cadastrado. O nome foi preenchido automaticamente."
+                      : undefined
+                }
+                placeholder="000.000.000-00"
+                inputMode="numeric"
+                onChange={(event) => {
+                  const cpf = maskCpf(event.target.value);
+                  const cpfDigits = onlyDigits(cpf);
+                  const changedExistingCpf = existingClient && onlyDigits(cpf) !== onlyDigits(existingClient.cpf ?? "");
+                  setForm((current) => ({
+                    ...current,
+                    cpf,
+                    clientName: changedExistingCpf ? "" : current.clientName,
+                  }));
+                  setErrors((current) => ({ ...current, cpf: undefined, clientName: undefined }));
+                  if (changedExistingCpf || cpfDigits.length !== 11) setExistingClient(null);
+                  if (cpfDigits.length !== 11) setLoadingClient(false);
+                }}
+              />
+              <FormInput
+                id="manual-client-name"
+                required
+                label="Nome do Cliente"
+                value={form.clientName}
+                error={errors.clientName}
+                icon={<UserRound className="h-4 w-4" />}
+                placeholder="Ex: João Silva"
+                maxLength={150}
+                disabled={Boolean(existingClient)}
+                className={existingClient ? "disabled:opacity-100" : undefined}
+                onChange={(event) => set("clientName", event.target.value)}
+              />
+              <FormInput
+                id="manual-client-phone"
+                required
+                label="Telefone"
+                value={form.phone}
+                error={errors.phone}
+                icon={<Phone className="h-4 w-4" />}
+                placeholder="(11) 99999-9999"
+                inputMode="tel"
+                onChange={(event) => set("phone", maskPhone(event.target.value))}
+              />
+              <FormSelect
+                id="manual-status"
+                required
+                label="Status"
+                value={form.status}
+                options={MANUAL_STATUS_OPTIONS}
+                error={errors.status}
+                onValueChange={(value) => set("status", value as ManualStatus)}
+              />
+            </section>
+
+            <section className="grid gap-4">
+              <FormSelect
+                id="manual-professional"
+                required
+                label="Profissional"
+                placeholder="Selecione o profissional"
+                value={form.professionalId}
+                options={professionals.map((professional) => ({
+                  value: professional.id,
+                  label: `${professional.name} - ${professional.role}`,
+                }))}
+                error={errors.professionalId}
+                onValueChange={(value) => {
+                  const professional = professionals.find((item) => item.id === value);
+                  setForm((current) => ({
+                    ...current,
+                    professionalId: value,
+                    serviceIds: current.serviceIds.filter((id) => professional?.serviceIds.includes(id)),
+                    time: "",
+                  }));
+                  setErrors((current) => ({
+                    ...current,
+                    professionalId: undefined,
+                    serviceIds: undefined,
+                    time: undefined,
+                  }));
+                }}
+              />
+            </section>
+
+            <section>
+              <div className="mb-2 flex items-center justify-between gap-3">
+                <p className="text-sm font-medium">
+                  <span className="text-destructive">*</span> Serviços realizados
+                </p>
+                <span className="text-xs font-semibold text-primary">
+                  {form.serviceIds.length} selecionado{form.serviceIds.length === 1 ? "" : "s"}
+                </span>
+              </div>
+              <div className="grid max-h-64 gap-2 overflow-auto rounded-xl border border-input bg-background/60 p-3 sm:grid-cols-2">
+                {availableServices.length === 0 ? (
+                  <p className="text-sm text-muted-foreground sm:col-span-2">
+                    Selecione um profissional com serviços vinculados.
+                  </p>
+                ) : (
+                  availableServices.map((service) => {
+                    const checked = form.serviceIds.includes(service.id);
+
+                    return (
+                      <label
+                        key={service.id}
+                        className="flex cursor-pointer items-center gap-3 rounded-lg p-2 text-sm transition hover:bg-accent"
+                      >
+                        <Checkbox
+                          checked={checked}
+                          onCheckedChange={(value) => toggleService(service.id, Boolean(value))}
+                        />
+                        <span className="min-w-0 flex-1">
+                          <span className="block truncate font-medium">{service.name}</span>
+                          <span className="block text-xs text-muted-foreground">
+                            {service.durationMin} min - {brl(service.price)}
+                          </span>
+                        </span>
+                      </label>
+                    );
+                  })
+                )}
+              </div>
+              {errors.serviceIds ? (
+                <p className="mt-1.5 text-xs text-destructive">{errors.serviceIds}</p>
+              ) : null}
+            </section>
+
+            <section className="grid gap-4 sm:grid-cols-2">
+              <FormInput
+                id="manual-date"
+                required
+                label="Data"
+                type="date"
+                value={form.date}
+                error={errors.date}
+                onChange={(event) => {
+                  setForm((current) => ({ ...current, date: event.target.value, time: "" }));
+                  setErrors((current) => ({ ...current, date: undefined, time: undefined }));
+                }}
+              />
+              <FormSelect
+                id="manual-time"
+                required
+                label="Horário"
+                value={form.time}
+                error={errors.time}
+                placeholder={
+                  !hasRequiredScheduleFields
+                    ? "Selecione profissional, serviços e data"
+                    : shouldShowNoSlots
+                      ? "Nenhum horário disponível"
+                      : "Selecione um horário"
+                }
+                disabled={!hasRequiredScheduleFields || shouldShowNoSlots}
+                options={slots.map((slot) => ({ value: slot, label: slot }))}
+                onValueChange={(value) => set("time", value)}
+              />
+            </section>
+            {shouldShowNoSlots ? (
+              <div className="flex items-start gap-2 rounded-xl border border-destructive/25 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+                <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+                <p className="leading-5">
+                  Não há horários disponíveis para esse profissional, data e duração dos serviços.
+                </p>
+              </div>
+            ) : hasRequiredScheduleFields && form.time && !isSelectedTimeAvailable ? (
+              <div className="flex items-start gap-2 rounded-xl border border-destructive/25 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+                <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+                <p className="leading-5">
+                  Esse horário não comporta o atendimento selecionado. Escolha um horário livre entre{" "}
+                  {slots.slice(0, 5).join(", ")}
+                  {slots.length > 5 ? "..." : "."}
+                </p>
+              </div>
+            ) : null}
+
+            <FormTextarea
+              id="manual-observation"
+              label="Observação"
+              value={form.observation}
+              error={errors.observation}
+              hint={`${form.observation.length}/300`}
+              placeholder="Notas sobre o atendimento..."
+              maxLength={300}
+              className="min-h-24"
+              onChange={(event) => set("observation", event.target.value)}
+            />
+
+            {form.serviceIds.length > 0 ? (
+              <div className="glass-soft grid gap-3 rounded-2xl p-3 text-sm sm:grid-cols-2 sm:gap-4">
+                <p className="flex items-center justify-between gap-4 rounded-xl bg-background/40 px-3 py-2">
+                  <span className="text-muted-foreground">Duração total</span>
+                  <span className="shrink-0 font-semibold">{totalDuration} min</span>
+                </p>
+                <p className="flex items-center justify-between gap-4 rounded-xl bg-background/40 px-3 py-2">
+                  <span className="text-muted-foreground">Valor total</span>
+                  <span className="shrink-0 font-bold text-primary">{brl(totalPrice)}</span>
+                </p>
+              </div>
+            ) : null}
+          </div>
+        )}
+
+        <DialogFooter className="gap-2 sm:gap-0">
+          <Button type="button" variant="outline" onClick={() => close(false)} disabled={saving}>
+            Cancelar
+          </Button>
+          <Button type="button" onClick={submit} disabled={saving || loadingResources} className="bg-gradient-primary">
+            {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+            Salvar atendimento
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 function StatusBadge({ status }: { status: ApptStatus }) {
   const map = {
     pending: {
@@ -612,4 +1272,65 @@ function EmptyDay() {
       </p>
     </div>
   );
+}
+
+function buildManualSlots({
+  professional,
+  date,
+  selectedServices,
+  appointments,
+}: {
+  professional?: CompanyProfessional;
+  date: string;
+  selectedServices: CompanyService[];
+  appointments: Appt[];
+}) {
+  if (!professional || !date || selectedServices.length === 0) return [];
+
+  const totalDuration = selectedServices.reduce((acc, service) => acc + service.durationMin, 0);
+  if (totalDuration <= 0) return [];
+
+  const busy = appointments
+    .filter(
+      (appointment) =>
+        appointment.status !== "cancelled" &&
+        (appointment.professional_id
+          ? appointment.professional_id === professional.id
+          : appointment.professional_name === professional.name) &&
+        appointment.scheduled_at.startsWith(date),
+    )
+    .map((appointment) => {
+      const start = new Date(appointment.scheduled_at).getTime();
+      return [start, start + appointment.service_duration_min * 60000];
+    });
+
+  const dayStart = new Date(`${date}T00:00:00`);
+  dayStart.setHours(
+    Math.floor(timeToMinutes(professional.startTime) / 60),
+    timeToMinutes(professional.startTime) % 60,
+    0,
+    0,
+  );
+
+  const dayEnd = new Date(`${date}T00:00:00`);
+  dayEnd.setHours(
+    Math.floor(timeToMinutes(professional.endTime) / 60),
+    timeToMinutes(professional.endTime) % 60,
+    0,
+    0,
+  );
+
+  const slots: string[] = [];
+  for (let time = dayStart.getTime(); time + totalDuration * 60000 <= dayEnd.getTime(); time += 30 * 60000) {
+    const conflict = busy.some(
+      ([busyStart, busyEnd]) => !(time + totalDuration * 60000 <= busyStart || time >= busyEnd),
+    );
+
+    if (!conflict) {
+      const slotDate = new Date(time);
+      slots.push(minutesToTime(slotDate.getHours() * 60 + slotDate.getMinutes()));
+    }
+  }
+
+  return slots;
 }
