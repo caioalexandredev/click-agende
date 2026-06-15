@@ -1,11 +1,12 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Clock, ImageIcon, Loader2, Scissors } from "lucide-react";
+import { Clock, Loader2, Scissors } from "lucide-react";
 import { useEffect } from "react";
 import { Controller, useForm } from "react-hook-form";
 
 import { FormInput } from "@/components/form/FormInput";
+import { ImageUploadInput } from "@/components/form/ImageUploadInput";
 import { FormSelect } from "@/components/form/FormSelect";
 import { FormTextarea } from "@/components/form/FormTextarea";
 import { Button } from "@/components/ui/button";
@@ -47,6 +48,23 @@ function formatCurrencyInput(value: string) {
 
 function formatPriceForForm(value: number) {
   return value.toFixed(2).replace(".", ",");
+}
+
+async function uploadImage(file: File) {
+  const formData = new FormData();
+  formData.append("file", file);
+
+  const response = await fetch("/api/empresa/upload-imagem", {
+    method: "POST",
+    body: formData,
+  });
+  const payload = (await response.json().catch(() => null)) as { url?: string; message?: string } | null;
+
+  if (!response.ok || !payload?.url) {
+    throw new Error(payload?.message ?? "Não foi possível enviar a imagem.");
+  }
+
+  return payload.url;
 }
 
 export function ServiceDialog({ open, onOpenChange, service, onSubmit }: ServiceDialogProps) {
@@ -169,13 +187,21 @@ export function ServiceDialog({ open, onOpenChange, service, onSubmit }: Service
             )}
           />
 
-          <FormInput
-            id="imageUrl"
-            label="URL da imagem"
-            placeholder="https://exemplo.com/imagem.jpg"
-            icon={<ImageIcon className="h-4 w-4" />}
-            error={errors.imageUrl?.message}
-            {...register("imageUrl")}
+          <Controller
+            control={control}
+            name="imageUrl"
+            render={({ field }) => (
+              <ImageUploadInput
+                id="imageUrl"
+                label="Imagem do serviço"
+                value={field.value ?? ""}
+                error={errors.imageUrl?.message}
+                hint="Arraste uma imagem ou cole uma URL pública."
+                wrapperClassName="sm:col-span-2"
+                onChange={field.onChange}
+                onUpload={uploadImage}
+              />
+            )}
           />
 
           <FormTextarea

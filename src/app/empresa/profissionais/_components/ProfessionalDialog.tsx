@@ -5,7 +5,6 @@ import {
   AlertCircle,
   BriefcaseBusiness,
   Clock,
-  ImageIcon,
   Loader2,
   Mail,
   Phone,
@@ -16,6 +15,7 @@ import { useEffect } from "react";
 import { Controller, useForm } from "react-hook-form";
 
 import { FormInput } from "@/components/form/FormInput";
+import { ImageUploadInput } from "@/components/form/ImageUploadInput";
 import { FormSelect } from "@/components/form/FormSelect";
 import { FormTimeInput } from "@/components/form/FormTimeInput";
 import { FormTextarea } from "@/components/form/FormTextarea";
@@ -64,6 +64,23 @@ function formatPhone(value: string) {
   }
 
   return digits.replace(/^(\d{2})(\d)/, "($1) $2").replace(/(\d{5})(\d)/, "$1-$2");
+}
+
+async function uploadImage(file: File) {
+  const formData = new FormData();
+  formData.append("file", file);
+
+  const response = await fetch("/api/empresa/upload-imagem", {
+    method: "POST",
+    body: formData,
+  });
+  const payload = (await response.json().catch(() => null)) as { url?: string; message?: string } | null;
+
+  if (!response.ok || !payload?.url) {
+    throw new Error(payload?.message ?? "Não foi possível enviar a imagem.");
+  }
+
+  return payload.url;
 }
 
 export function ProfessionalDialog({
@@ -179,13 +196,21 @@ export function ProfessionalDialog({
             {...register("email")}
           />
 
-          <FormInput
-            id="profileImageUrl"
-            label="URL da foto de perfil"
-            placeholder="https://i.pravatar.cc/150?img=..."
-            icon={<ImageIcon className="h-4 w-4" />}
-            error={errors.profileImageUrl?.message}
-            {...register("profileImageUrl")}
+          <Controller
+            control={control}
+            name="profileImageUrl"
+            render={({ field }) => (
+              <ImageUploadInput
+                id="profileImageUrl"
+                label="Foto de perfil"
+                value={field.value ?? ""}
+                error={errors.profileImageUrl?.message}
+                hint="Arraste uma imagem ou cole uma URL pública."
+                wrapperClassName="sm:col-span-2"
+                onChange={field.onChange}
+                onUpload={uploadImage}
+              />
+            )}
           />
 
           <Controller
