@@ -1,7 +1,17 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { BriefcaseBusiness, Clock, Loader2, Mail, Phone, UserRound } from "lucide-react";
+import {
+  AlertCircle,
+  BriefcaseBusiness,
+  Clock,
+  ImageIcon,
+  Loader2,
+  Mail,
+  Phone,
+  Scissors,
+  UserRound,
+} from "lucide-react";
 import { useEffect } from "react";
 import { Controller, useForm } from "react-hook-form";
 
@@ -18,12 +28,13 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { professionalSchema, type ProfessionalForm } from "../schema";
-import type { Professional } from "../types";
+import type { Professional, ProfessionalServiceOption } from "../types";
 
 type ProfessionalDialogProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   professional?: Professional | null;
+  serviceOptions: ProfessionalServiceOption[];
   onSubmit: (data: ProfessionalForm) => void;
 };
 
@@ -32,8 +43,10 @@ const DEFAULT_VALUES: ProfessionalForm = {
   role: "",
   phone: "",
   email: "",
+  profileImageUrl: "",
   workStart: "08:00",
   workEnd: "18:00",
+  serviceIds: [],
   status: "active",
   bio: "",
 };
@@ -56,6 +69,7 @@ export function ProfessionalDialog({
   open,
   onOpenChange,
   professional,
+  serviceOptions,
   onSubmit,
 }: ProfessionalDialogProps) {
   const {
@@ -81,8 +95,10 @@ export function ProfessionalDialog({
             role: professional.role,
             phone: professional.phone,
             email: professional.email,
+            profileImageUrl: professional.profileImageUrl ?? "",
             workStart: professional.workStart,
             workEnd: professional.workEnd,
+            serviceIds: professional.serviceIds,
             status: professional.status,
             bio: professional.bio ?? "",
           }
@@ -159,6 +175,15 @@ export function ProfessionalDialog({
           />
 
           <FormInput
+            id="profileImageUrl"
+            label="URL da foto de perfil"
+            placeholder="https://i.pravatar.cc/150?img=..."
+            icon={<ImageIcon className="h-4 w-4" />}
+            error={errors.profileImageUrl?.message}
+            {...register("profileImageUrl")}
+          />
+
+          <FormInput
             id="workStart"
             label="Início da jornada"
             type="time"
@@ -193,6 +218,56 @@ export function ProfessionalDialog({
                 value={field.value}
                 onValueChange={field.onChange}
               />
+            )}
+          />
+
+          <Controller
+            control={control}
+            name="serviceIds"
+            render={({ field }) => (
+              <div className="space-y-2 sm:col-span-2">
+                <div className="flex items-center gap-2">
+                  <Scissors className="h-4 w-4 text-muted-foreground" />
+                  <p className="text-sm font-medium">Serviços que atende</p>
+                </div>
+                <div className="grid gap-2 rounded-xl border border-input bg-background/60 p-3 sm:grid-cols-2">
+                  {serviceOptions.map((service) => {
+                    const checked = field.value.includes(service.id);
+
+                    return (
+                      <label
+                        key={service.id}
+                        className="flex cursor-pointer items-start gap-2 rounded-lg p-2 text-sm transition hover:bg-accent"
+                      >
+                        <input
+                          type="checkbox"
+                          className="mt-0.5 h-4 w-4 rounded border-input accent-primary"
+                          checked={checked}
+                          onChange={(event) => {
+                            const nextValue = event.target.checked
+                              ? [...field.value, service.id]
+                              : field.value.filter((id) => id !== service.id);
+
+                            field.onChange(nextValue);
+                          }}
+                        />
+                        <span className="min-w-0">
+                          <span className="block font-medium text-foreground">{service.name}</span>
+                          <span className="block text-xs text-muted-foreground">
+                            {service.durationMin} minutos
+                          </span>
+                        </span>
+                      </label>
+                    );
+                  })}
+                </div>
+                {errors.serviceIds ? (
+                  <p className="flex items-center gap-1.5 text-xs text-destructive">
+                    <AlertCircle className="h-3.5 w-3.5" />
+                    {errors.serviceIds.message}
+                  </p>
+                ) : null}
+              </div>
             )}
           />
 

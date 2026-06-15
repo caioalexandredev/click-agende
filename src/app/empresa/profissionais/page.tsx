@@ -26,8 +26,15 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { DeleteProfessionalDialog } from "./_components/DeleteProfessionalDialog";
 import { ProfessionalDialog } from "./_components/ProfessionalDialog";
-import type { Professional } from "./types";
+import type { Professional, ProfessionalServiceOption } from "./types";
 import type { ProfessionalForm } from "./schema";
+
+const MOCK_SERVICES: ProfessionalServiceOption[] = [
+  { id: "srv-1", name: "Corte feminino", durationMin: 60 },
+  { id: "srv-2", name: "Barba completa", durationMin: 35 },
+  { id: "srv-3", name: "Manicure tradicional", durationMin: 50 },
+  { id: "srv-4", name: "Escova modelada", durationMin: 45 },
+];
 
 const MOCK_PROFESSIONALS: Professional[] = [
   {
@@ -36,8 +43,10 @@ const MOCK_PROFESSIONALS: Professional[] = [
     role: "Cabeleireira",
     phone: "(63) 99912-3344",
     email: "ana@clickagende.com",
+    profileImageUrl: "https://i.pravatar.cc/150?img=47",
     workStart: "08:00",
     workEnd: "17:00",
+    serviceIds: ["srv-1", "srv-4"],
     status: "active",
     bio: "Especialista em cortes femininos, escova e finalização.",
     appointmentsThisWeek: 18,
@@ -49,8 +58,10 @@ const MOCK_PROFESSIONALS: Professional[] = [
     role: "Barbeiro",
     phone: "(63) 99888-1020",
     email: "marcos@clickagende.com",
+    profileImageUrl: "https://i.pravatar.cc/150?img=12",
     workStart: "09:00",
     workEnd: "19:00",
+    serviceIds: ["srv-2"],
     status: "active",
     bio: "Atende cortes masculinos, barba e acabamento.",
     appointmentsThisWeek: 14,
@@ -62,8 +73,10 @@ const MOCK_PROFESSIONALS: Professional[] = [
     role: "Manicure",
     phone: "(63) 99777-4500",
     email: "juliana@clickagende.com",
+    profileImageUrl: "https://i.pravatar.cc/150?img=32",
     workStart: "08:30",
     workEnd: "16:30",
+    serviceIds: ["srv-3"],
     status: "inactive",
     bio: "Horários temporariamente pausados para reorganização da agenda.",
     appointmentsThisWeek: 0,
@@ -90,10 +103,21 @@ export default function ProfissionaisPage() {
     const normalizedQuery = query.trim().toLowerCase();
 
     return professionals.filter((professional) => {
+      const professionalServices = MOCK_SERVICES.filter((service) =>
+        professional.serviceIds.includes(service.id),
+      )
+        .map((service) => service.name)
+        .join(" ");
       const matchesStatus = statusFilter === "all" || professional.status === statusFilter;
       const matchesQuery =
         !normalizedQuery ||
-        [professional.name, professional.role, professional.email, professional.phone]
+        [
+          professional.name,
+          professional.role,
+          professional.email,
+          professional.phone,
+          professionalServices,
+        ]
           .join(" ")
           .toLowerCase()
           .includes(normalizedQuery);
@@ -222,6 +246,7 @@ export default function ProfissionaisPage() {
                 <ProfessionalCard
                   key={professional.id}
                   professional={professional}
+                  services={MOCK_SERVICES}
                   onEdit={() => openEditDialog(professional)}
                   onDelete={() => setDeletingProfessional(professional)}
                 />
@@ -237,6 +262,7 @@ export default function ProfissionaisPage() {
         open={dialogOpen}
         onOpenChange={setDialogOpen}
         professional={editingProfessional}
+        serviceOptions={MOCK_SERVICES}
         onSubmit={saveProfessional}
       />
       <DeleteProfessionalDialog
@@ -268,22 +294,23 @@ function MetricCard({ icon, label, value }: { icon: React.ReactNode; label: stri
 
 function ProfessionalCard({
   professional,
+  services,
   onEdit,
   onDelete,
 }: {
   professional: Professional;
+  services: ProfessionalServiceOption[];
   onEdit: () => void;
   onDelete: () => void;
 }) {
   const active = professional.status === "active";
+  const professionalServices = services.filter((service) => professional.serviceIds.includes(service.id));
 
   return (
     <article className="rounded-2xl border border-border/70 bg-card/70 p-4 shadow-sm">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div className="flex min-w-0 gap-3">
-          <div className="bg-gradient-primary grid h-12 w-12 shrink-0 place-items-center rounded-2xl text-primary-foreground">
-            <UserRound className="h-5 w-5" />
-          </div>
+          <ProfileAvatar professional={professional} />
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
               <h2 className="truncate font-display text-lg font-semibold">{professional.name}</h2>
@@ -300,6 +327,22 @@ function ProfessionalCard({
             {professional.bio ? (
               <p className="mt-2 max-w-2xl text-sm text-muted-foreground">{professional.bio}</p>
             ) : null}
+            <div className="mt-3 flex max-w-2xl flex-wrap gap-1.5">
+              {professionalServices.length ? (
+                professionalServices.map((service) => (
+                  <span
+                    key={service.id}
+                    className="rounded-full bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary"
+                  >
+                    {service.name}
+                  </span>
+                ))
+              ) : (
+                <span className="rounded-full bg-muted px-2.5 py-1 text-xs font-medium text-muted-foreground">
+                  Nenhum serviço vinculado
+                </span>
+              )}
+            </div>
           </div>
         </div>
 
@@ -333,6 +376,28 @@ function ProfessionalCard({
         </div>
       </div>
     </article>
+  );
+}
+
+function ProfileAvatar({ professional }: { professional: Professional }) {
+  const [imageError, setImageError] = useState(false);
+
+  if (professional.profileImageUrl && !imageError) {
+    return (
+      <div
+        role="img"
+        aria-label={`Foto de ${professional.name}`}
+        className="h-12 w-12 shrink-0 rounded-2xl bg-cover bg-center"
+        style={{ backgroundImage: `url(${professional.profileImageUrl})` }}
+        onError={() => setImageError(true)}
+      />
+    );
+  }
+
+  return (
+    <div className="bg-gradient-primary grid h-12 w-12 shrink-0 place-items-center rounded-2xl text-primary-foreground">
+      <UserRound className="h-5 w-5" />
+    </div>
   );
 }
 

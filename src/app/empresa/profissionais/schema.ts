@@ -28,6 +28,13 @@ export const professionalSchema = z
       .min(1, "Email é obrigatório.")
       .email("Email inválido.")
       .max(150, "Máximo de 150 caracteres."),
+    profileImageUrl: z
+      .string()
+      .trim()
+      .optional()
+      .refine((value) => !value || /^https?:\/\/.+/.test(value), {
+        message: "URL inválida.",
+      }),
     workStart: z
       .string()
       .trim()
@@ -38,6 +45,7 @@ export const professionalSchema = z
       .trim()
       .min(1, "Horário de fim é obrigatório.")
       .regex(timeRegex, "Digite um horário válido."),
+    serviceIds: z.array(z.string()).min(1, "Selecione ao menos um serviço."),
     status: z.enum(["active", "inactive"], {
       message: "Status é obrigatório.",
     }),
