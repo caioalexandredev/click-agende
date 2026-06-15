@@ -162,7 +162,7 @@ export default function ClientHome() {
 
 function CompanyCard({ company }: { company: Company }) {
   const [imageError, setImageError] = useState(false);
-  const href = `/cliente/estabelecimento/${company.id}`;
+  const href = `/cliente/estabelecimento?empresa=${company.id}`;
 
   return (
     <article className="glass overflow-hidden rounded-3xl">
