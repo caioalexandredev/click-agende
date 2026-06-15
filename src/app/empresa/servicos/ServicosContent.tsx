@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   ArrowLeft,
   CalendarCheck,
@@ -26,38 +26,15 @@ import { ServiceDialog } from "./_components/ServiceDialog";
 import { serviceFormToPayload, type ServiceForm } from "./schema";
 import type { Service } from "./types";
 
-const MOCK_SERVICES: Service[] = [
-  {
-    id: "srv-1",
-    name: "Corte feminino",
-    description: "Corte personalizado com finalização simples.",
-    price: 85,
-    durationMin: 60,
-    status: "active",
-    imageUrl: "https://images.unsplash.com/photo-1562322140-8baeececf3df?auto=format&fit=crop&w=900&q=80",
-    appointmentsThisMonth: 34,
-  },
-  {
-    id: "srv-2",
-    name: "Barba completa",
-    description: "Modelagem, toalha quente e acabamento com navalha.",
-    price: 45,
-    durationMin: 35,
-    status: "active",
-    imageUrl: "https://images.unsplash.com/photo-1621605815971-fbc98d665033?auto=format&fit=crop&w=900&q=80",
-    appointmentsThisMonth: 22,
-  },
-  {
-    id: "srv-3",
-    name: "Manicure tradicional",
-    description: "Cutilagem, esmaltação e hidratação rápida.",
-    price: 38,
-    durationMin: 50,
-    status: "inactive",
-    imageUrl: "",
-    appointmentsThisMonth: 8,
-  },
-];
+type ServiceResponse = {
+  id: number;
+  urlImagem?: string | null;
+  nome: string;
+  descricao?: string | null;
+  preco: number;
+  duracao: number;
+  disponivel?: boolean | null;
+};
 
 const STATUS_OPTIONS = [
   { value: "all", label: "Todos" },
@@ -72,14 +49,57 @@ function formatMoney(value: number) {
   }).format(value);
 }
 
+function mapService(service: ServiceResponse): Service {
+  return {
+    id: String(service.id),
+    name: service.nome,
+    description: service.descricao ?? "",
+    price: Number(service.preco),
+    durationMin: Number(service.duracao),
+    status: service.disponivel === false ? "inactive" : "active",
+    imageUrl: service.urlImagem ?? "",
+    appointmentsThisMonth: 0,
+  };
+}
+
 export default function ServicosContent() {
   const { company, loading } = useCompanyGuard();
-  const [services, setServices] = useState<Service[]>(MOCK_SERVICES);
+  const [services, setServices] = useState<Service[]>([]);
+  const [loadingServices, setLoadingServices] = useState(true);
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingService, setEditingService] = useState<Service | null>(null);
   const [deletingService, setDeletingService] = useState<Service | null>(null);
+
+  useEffect(() => {
+    let active = true;
+
+    async function loadServices() {
+      setLoadingServices(true);
+
+      try {
+        const response = await fetch("/api/empresa/servicos");
+        const payload = await response.json().catch(() => null);
+
+        if (!response.ok) {
+          throw new Error(payload?.message ?? "Nao foi possivel carregar os servicos.");
+        }
+
+        if (active) setServices((payload as ServiceResponse[]).map(mapService));
+      } catch (error) {
+        toast.error(error instanceof Error ? error.message : "Nao foi possivel carregar os servicos.");
+      } finally {
+        if (active) setLoadingServices(false);
+      }
+    }
+
+    void loadServices();
+
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const filteredServices = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
@@ -113,39 +133,63 @@ export default function ServicosContent() {
     setDialogOpen(true);
   }
 
-  function saveService(data: ServiceForm) {
+  async function saveService(data: ServiceForm) {
     const payload = serviceFormToPayload(data);
 
-    if (editingService) {
-      setServices((current) =>
-        current.map((service) =>
-          service.id === editingService.id ? { ...service, ...payload } : service,
-        ),
+    try {
+      const response = await fetch(
+        editingService ? `/api/empresa/servicos/${editingService.id}` : "/api/empresa/servicos",
+        {
+          method: editingService ? "PUT" : "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify(payload),
+        },
       );
-      toast.success("Serviço atualizado com sucesso.");
-      return;
-    }
+      const responsePayload = await response.json().catch(() => null);
 
-    setServices((current) => [
-      {
-        id: `srv-${Date.now()}`,
-        ...payload,
-        appointmentsThisMonth: 0,
-      },
-      ...current,
-    ]);
-    toast.success("Serviço cadastrado com sucesso.");
+      if (!response.ok) {
+        throw new Error(
+          responsePayload?.message ??
+            (editingService ? "Nao foi possivel atualizar o servico." : "Nao foi possivel cadastrar o servico."),
+        );
+      }
+
+      const saved = mapService(responsePayload as ServiceResponse);
+      setServices((current) =>
+        editingService
+          ? current.map((service) => (service.id === saved.id ? saved : service))
+          : [saved, ...current],
+      );
+      toast.success(editingService ? "Servico atualizado com sucesso." : "Servico cadastrado com sucesso.");
+      return true;
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Nao foi possivel salvar o servico.");
+      return false;
+    }
   }
 
-  function confirmDelete() {
+  async function confirmDelete() {
     if (!deletingService) return;
 
-    setServices((current) => current.filter((service) => service.id !== deletingService.id));
-    toast.success("Serviço excluído.");
-    setDeletingService(null);
+    try {
+      const response = await fetch(`/api/empresa/servicos/${deletingService.id}`, {
+        method: "DELETE",
+      });
+      const payload = await response.json().catch(() => null);
+
+      if (!response.ok) {
+        throw new Error(payload?.message ?? "Nao foi possivel excluir o servico.");
+      }
+
+      setServices((current) => current.filter((service) => service.id !== deletingService.id));
+      toast.success("Servico excluido.");
+      setDeletingService(null);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Nao foi possivel excluir o servico.");
+    }
   }
 
-  if (loading) return <Center />;
+  if (loading || loadingServices) return <Center />;
 
   return (
     <div className="relative min-h-screen overflow-hidden">
@@ -162,31 +206,31 @@ export default function ServicosContent() {
 
         <section className="mt-4 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div>
-            <h1 className="font-display text-2xl font-bold sm:text-3xl">Gerenciar Serviços</h1>
+            <h1 className="font-display text-2xl font-bold sm:text-3xl">Gerenciar Servicos</h1>
             <p className="mt-1 text-muted-foreground">
-              Cadastre e organize os serviços oferecidos pelo estabelecimento.
+              Cadastre e organize os servicos oferecidos pelo estabelecimento.
             </p>
           </div>
           <Button onClick={openCreateDialog} className="bg-gradient-primary">
             <Plus className="h-4 w-4" />
-            Adicionar serviço
+            Adicionar servico
           </Button>
         </section>
 
         <section className="mt-6 grid gap-4 md:grid-cols-3">
           <MetricCard
             icon={<Scissors className="h-5 w-5" />}
-            label="Serviços cadastrados"
+            label="Servicos cadastrados"
             value={services.length.toString()}
           />
           <MetricCard
             icon={<Clock className="h-5 w-5" />}
-            label="Serviços ativos"
+            label="Servicos ativos"
             value={activeCount.toString()}
           />
           <MetricCard
             icon={<CalendarCheck className="h-5 w-5" />}
-            label="Agendamentos no mês"
+            label="Agendamentos no mes"
             value={appointmentsThisMonth.toString()}
           />
         </section>
@@ -195,8 +239,8 @@ export default function ServicosContent() {
           <div className="grid gap-4 md:grid-cols-[1fr_220px]">
             <FormInput
               id="service-search"
-              label="Buscar serviço"
-              placeholder="Busque por nome ou descrição"
+              label="Buscar servico"
+              placeholder="Busque por nome ou descricao"
               value={query}
               icon={<Search className="h-4 w-4" />}
               onChange={(event) => setQuery(event.target.value)}
@@ -315,14 +359,14 @@ function ServiceCard({
             {service.description}
           </p>
         ) : (
-          <p className="mt-2 min-h-10 text-sm text-muted-foreground">Sem descrição cadastrada.</p>
+          <p className="mt-2 min-h-10 text-sm text-muted-foreground">Sem descricao cadastrada.</p>
         )}
 
         <div className="mt-3 grid gap-2 text-sm text-muted-foreground">
           <InfoLine icon={<Clock className="h-4 w-4" />} text={`${service.durationMin} minutos`} />
           <InfoLine
             icon={<CalendarCheck className="h-4 w-4" />}
-            text={`${service.appointmentsThisMonth} agendamentos no mês`}
+            text={`${service.appointmentsThisMonth} agendamentos no mes`}
           />
         </div>
 
@@ -361,13 +405,13 @@ function EmptyState({ onCreate }: { onCreate: () => void }) {
       <div className="mx-auto grid h-12 w-12 place-items-center rounded-full bg-primary/10 text-primary">
         <Scissors className="h-5 w-5" />
       </div>
-      <h2 className="mt-3 font-display text-lg font-semibold">Nenhum serviço encontrado</h2>
+      <h2 className="mt-3 font-display text-lg font-semibold">Nenhum servico encontrado</h2>
       <p className="mx-auto mt-1 max-w-md text-sm text-muted-foreground">
-        Ajuste os filtros ou cadastre um novo serviço para liberar novos agendamentos.
+        Ajuste os filtros ou cadastre um novo servico para liberar novos agendamentos.
       </p>
       <Button onClick={onCreate} className="mt-4 bg-gradient-primary">
         <Plus className="h-4 w-4" />
-        Adicionar serviço
+        Adicionar servico
       </Button>
     </div>
   );

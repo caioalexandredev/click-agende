@@ -24,7 +24,7 @@ type ServiceDialogProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   service?: Service | null;
-  onSubmit: (data: ServiceForm) => void;
+  onSubmit: (data: ServiceForm) => Promise<boolean>;
 };
 
 const DEFAULT_VALUES: ServiceForm = {
@@ -80,9 +80,9 @@ export function ServiceDialog({ open, onOpenChange, service, onSubmit }: Service
     );
   }, [open, reset, service]);
 
-  function submit(data: ServiceForm) {
-    onSubmit(data);
-    onOpenChange(false);
+  async function submit(data: ServiceForm) {
+    const success = await onSubmit(data);
+    if (success) onOpenChange(false);
   }
 
   return (
