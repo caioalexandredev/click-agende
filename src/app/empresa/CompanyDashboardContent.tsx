@@ -23,6 +23,16 @@ import {
 
 import { MiniCalendar, dateToYMD } from "@/components/MiniCalendar";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 
 type ApptStatus = "pending" | "cancelled" | "completed";
@@ -109,6 +119,10 @@ export default function CompanyDashboardContent() {
   const [appts, setAppts] = useState<Appt[]>([]);
   const [loadingDashboard, setLoadingDashboard] = useState(true);
   const [navOpen, setNavOpen] = useState(false);
+  const [pendingAction, setPendingAction] = useState<{
+    appointment: Appt;
+    status: Exclude<ApptStatus, "pending">;
+  } | null>(null);
 
   const today = useMemo(() => new Date(), []);
   const [selected, setSelected] = useState<Date>(today);
@@ -208,6 +222,7 @@ export default function CompanyDashboardContent() {
       const updated = mapAppointment(payload as AgendaResponse);
       setAppts((current) => current.map((appt) => (appt.id === updated.id ? updated : appt)));
       toast.success(status === "completed" ? "Agendamento finalizado." : "Agendamento cancelado.");
+      setPendingAction(null);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Não foi possível atualizar o agendamento.");
     }
@@ -289,13 +304,27 @@ export default function CompanyDashboardContent() {
                 <EmptyDay />
               ) : (
                 dayAppts.map((a) => (
-                  <AppointmentItem key={a.id} a={a} onUpdate={updateStatus} />
+                  <AppointmentItem
+                    key={a.id}
+                    a={a}
+                    onRequestUpdate={(status) => setPendingAction({ appointment: a, status })}
+                  />
                 ))
               )}
             </div>
           </div>
         </section>
       </main>
+
+      <AppointmentActionDialog
+        action={pendingAction}
+        onOpenChange={(open) => {
+          if (!open) setPendingAction(null);
+        }}
+        onConfirm={() => {
+          if (pendingAction) void updateStatus(pendingAction.appointment.id, pendingAction.status);
+        }}
+      />
     </div>
   );
 }
@@ -450,10 +479,10 @@ function SummaryCard({
 
 function AppointmentItem({
   a,
-  onUpdate,
+  onRequestUpdate,
 }: {
   a: Appt;
-  onUpdate: (id: string, s: Exclude<ApptStatus, "pending">) => void;
+  onRequestUpdate: (s: Exclude<ApptStatus, "pending">) => void;
 }) {
   return (
     <div className="glass-soft rounded-2xl p-4">
@@ -486,7 +515,7 @@ function AppointmentItem({
           <Button
             size="sm"
             className="bg-gradient-primary h-9 flex-1"
-            onClick={() => onUpdate(a.id, "completed")}
+            onClick={() => onRequestUpdate("completed")}
           >
             <CheckCircle2 className="mr-1.5 h-4 w-4" /> Finalizar
           </Button>
@@ -494,13 +523,56 @@ function AppointmentItem({
             size="sm"
             variant="outline"
             className="h-9 flex-1"
-            onClick={() => onUpdate(a.id, "cancelled")}
+            onClick={() => onRequestUpdate("cancelled")}
           >
             <XCircle className="mr-1.5 h-4 w-4" /> Cancelar
           </Button>
         </div>
       ) : null}
     </div>
+  );
+}
+
+function AppointmentActionDialog({
+  action,
+  onOpenChange,
+  onConfirm,
+}: {
+  action: { appointment: Appt; status: Exclude<ApptStatus, "pending"> } | null;
+  onOpenChange: (open: boolean) => void;
+  onConfirm: () => void;
+}) {
+  const isCancel = action?.status === "cancelled";
+  const title = isCancel ? "Cancelar agendamento?" : "Finalizar agendamento?";
+  const actionText = isCancel ? "Confirmar cancelamento" : "Confirmar finalização";
+  const description = action
+    ? isCancel
+      ? `Você está cancelando o agendamento de ${action.appointment.client_name}. Esta ação altera o status do atendimento.`
+      : `Você está finalizando o agendamento de ${action.appointment.client_name}. Confirme apenas se o atendimento foi concluído.`
+    : "";
+
+  return (
+    <AlertDialog open={Boolean(action)} onOpenChange={onOpenChange}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <div className={`mb-2 grid h-10 w-10 place-items-center rounded-full ${
+            isCancel ? "bg-destructive/10 text-destructive" : "bg-primary/10 text-primary"
+          }`}>
+            {isCancel ? <XCircle className="h-5 w-5" /> : <CheckCircle2 className="h-5 w-5" />}
+          </div>
+          <AlertDialogTitle>{title}</AlertDialogTitle>
+          <AlertDialogDescription>{description}</AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>Voltar</AlertDialogCancel>
+          <AlertDialogAction asChild>
+            <Button variant={isCancel ? "destructive" : "default"} onClick={onConfirm}>
+              {actionText}
+            </Button>
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
   );
 }
 
