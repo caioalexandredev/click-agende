@@ -71,6 +71,7 @@ export default function ClientLoginPage() {
         <FormInput
           id="email"
           label="Email"
+          required
           type="email"
           placeholder="exemplo@exemplo.com"
           autoComplete="email"
@@ -82,6 +83,7 @@ export default function ClientLoginPage() {
         <FormInput
           id="password"
           label="Senha"
+          required
           type="password"
           placeholder="********"
           autoComplete="current-password"

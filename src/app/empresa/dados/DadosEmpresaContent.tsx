@@ -333,11 +333,12 @@ export default function DadosEmpresaContent() {
         </Link>
         <div className="glass mt-4 rounded-3xl p-6 sm:p-8">
           <h1 className="font-display text-2xl font-bold sm:text-3xl">Dados da Empresa</h1>
-          <p className="mt-1 text-muted-foreground">Gerencie as informacoes do seu estabelecimento</p>
+          <p className="mt-1 text-muted-foreground">Gerencie as informações do seu estabelecimento</p>
 
           <div className="mt-6 grid gap-5 md:grid-cols-2">
             <FormInput
               id="business_name"
+              required
               label="Nome da Empresa"
               error={errors.business_name}
               wrapperClassName="md:col-span-2"
@@ -350,6 +351,7 @@ export default function DadosEmpresaContent() {
 
             <FormInput
               id="cnpj"
+              required
               label="CNPJ"
               error={errors.cnpj}
               value={form.cnpj}
@@ -360,6 +362,7 @@ export default function DadosEmpresaContent() {
 
             <FormInput
               id="phone"
+              required
               label="Telefone"
               error={errors.phone}
               value={form.phone}
@@ -370,6 +373,7 @@ export default function DadosEmpresaContent() {
 
             <FormInput
               id="email"
+              required
               label="Email"
               error={errors.email}
               wrapperClassName="md:col-span-2"
@@ -383,6 +387,7 @@ export default function DadosEmpresaContent() {
 
             <FormInput
               id="cep"
+              required
               label="CEP"
               error={errors.cep}
               value={form.cep}
@@ -392,7 +397,8 @@ export default function DadosEmpresaContent() {
 
             <FormInput
               id="address"
-              label="Endereco Completo"
+              required
+              label="Endereço Completo"
               error={errors.address}
               value={form.address}
               maxLength={200}
@@ -403,6 +409,7 @@ export default function DadosEmpresaContent() {
 
             <FormSelect
               id="uf"
+              required
               label="UF"
               placeholder="Selecione..."
               options={UF_OPTIONS}
@@ -417,6 +424,7 @@ export default function DadosEmpresaContent() {
 
             <FormSelect
               id="city"
+              required
               label="Cidade"
               placeholder={cityPlaceholder}
               options={cityOptions}
@@ -428,6 +436,7 @@ export default function DadosEmpresaContent() {
 
             <FormTextarea
               id="description"
+              required
               label="Descricao"
               error={errors.description}
               hint={`${form.description.length}/500`}

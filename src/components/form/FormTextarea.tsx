@@ -23,10 +23,15 @@ export function FormTextarea({
 }: FormTextareaProps) {
   const errorId = error && id ? `${id}-error` : undefined;
   const hintId = hint && id ? `${id}-hint` : undefined;
+  const required = Boolean(props.required);
 
   return (
     <div className={cn("space-y-1.5", wrapperClassName)}>
-      <Label htmlFor={id}>{label}</Label>
+      <Label htmlFor={id}>
+        {required ? <span className="text-destructive">*</span> : null}
+        {required ? " " : null}
+        {label}
+      </Label>
       <Textarea
         id={id}
         aria-invalid={Boolean(error)}

@@ -220,17 +220,17 @@ export default function ServicosContent() {
         <section className="mt-6 grid gap-4 md:grid-cols-3">
           <MetricCard
             icon={<Scissors className="h-5 w-5" />}
-            label="Servicos cadastrados"
+            label="Serviços cadastrados"
             value={services.length.toString()}
           />
           <MetricCard
             icon={<Clock className="h-5 w-5" />}
-            label="Servicos ativos"
+            label="Serviços ativos"
             value={activeCount.toString()}
           />
           <MetricCard
             icon={<CalendarCheck className="h-5 w-5" />}
-            label="Agendamentos no mes"
+            label="Agendamentos no mês"
             value={appointmentsThisMonth.toString()}
           />
         </section>
@@ -239,8 +239,8 @@ export default function ServicosContent() {
           <div className="grid gap-4 md:grid-cols-[1fr_220px]">
             <FormInput
               id="service-search"
-              label="Buscar servico"
-              placeholder="Busque por nome ou descricao"
+              label="Buscar serviço"
+              placeholder="Busque por nome ou descrição"
               value={query}
               icon={<Search className="h-4 w-4" />}
               onChange={(event) => setQuery(event.target.value)}

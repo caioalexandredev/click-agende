@@ -201,6 +201,7 @@ export default function ClientSignupPage() {
         <FormSection title="Dados pessoais">
           <FormInput
             id="full_name"
+            required
             label="Nome Completo"
             placeholder="Seu nome"
             maxLength={150}
@@ -216,6 +217,7 @@ export default function ClientSignupPage() {
             render={({ field }) => (
               <FormInput
                 id="cpf"
+                required
                 label="CPF"
                 placeholder="000.000.000-00"
                 inputMode="numeric"
@@ -232,6 +234,7 @@ export default function ClientSignupPage() {
 
           <FormInput
             id="email"
+            required
             label="Email"
             type="email"
             placeholder="cliente@exemplo.com"
@@ -247,6 +250,7 @@ export default function ClientSignupPage() {
             render={({ field }) => (
               <FormInput
                 id="phone"
+                required
                 label="Telefone"
                 placeholder="(11) 98765-4321"
                 inputMode="tel"
@@ -269,6 +273,7 @@ export default function ClientSignupPage() {
             render={({ field }) => (
               <FormInput
                 id="cep"
+                required
                 label="CEP"
                 placeholder="00000-000"
                 inputMode="numeric"
@@ -285,6 +290,7 @@ export default function ClientSignupPage() {
 
           <FormInput
             id="address"
+            required
             label="Endereço Completo"
             placeholder="Rua, Bairro"
             maxLength={150}
@@ -299,6 +305,7 @@ export default function ClientSignupPage() {
             render={({ field }) => (
               <FormSelect
                 id="uf"
+                required
                 label="UF"
                 placeholder="Selecione..."
                 options={UF_OPTIONS}
@@ -321,6 +328,7 @@ export default function ClientSignupPage() {
             render={({ field }) => (
               <FormSelect
                 id="city"
+                required
                 label="Cidade"
                 placeholder={cityPlaceholder}
                 options={cities}
@@ -337,6 +345,7 @@ export default function ClientSignupPage() {
         <FormSection title="Dados de acesso">
           <FormInput
             id="password"
+            required
             label="Senha"
             type="password"
             placeholder="********"
@@ -348,6 +357,7 @@ export default function ClientSignupPage() {
 
           <FormInput
             id="confirm"
+            required
             label="Confirmar Senha"
             type="password"
             placeholder="********"

@@ -124,6 +124,7 @@ export function ProfessionalDialog({
         <form id="professional-form" onSubmit={handleSubmit(submit)} className="grid gap-4 sm:grid-cols-2" noValidate>
           <FormInput
             id="name"
+            required
             label="Nome"
             placeholder="Nome completo"
             maxLength={120}
@@ -134,6 +135,7 @@ export function ProfessionalDialog({
 
           <FormInput
             id="role"
+            required
             label="Especialidade por escrito"
             placeholder="Ex: Cabeleireira, barbeiro, manicure..."
             maxLength={80}
@@ -148,6 +150,7 @@ export function ProfessionalDialog({
             render={({ field }) => (
               <FormInput
                 id="phone"
+                required
                 label="Telefone"
                 placeholder="(11) 99999-9999"
                 inputMode="tel"
@@ -164,6 +167,7 @@ export function ProfessionalDialog({
 
           <FormInput
             id="email"
+            required
             label="Email"
             type="email"
             placeholder="profissional@email.com"
@@ -185,6 +189,7 @@ export function ProfessionalDialog({
 
           <FormInput
             id="workStart"
+            required
             label="Início da jornada"
             type="time"
             icon={<Clock className="h-4 w-4" />}
@@ -194,6 +199,7 @@ export function ProfessionalDialog({
 
           <FormInput
             id="workEnd"
+            required
             label="Fim da jornada"
             type="time"
             icon={<Clock className="h-4 w-4" />}
@@ -207,6 +213,7 @@ export function ProfessionalDialog({
             render={({ field }) => (
               <FormSelect
                 id="status"
+                required
                 label="Status"
                 placeholder="Selecione..."
                 options={[
@@ -228,6 +235,7 @@ export function ProfessionalDialog({
               <div className="space-y-2 sm:col-span-2">
                 <div className="flex items-center gap-2">
                   <Scissors className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-sm font-medium text-destructive">*</span>
                   <p className="text-sm font-medium">Serviços que atende</p>
                 </div>
                 <div className="grid gap-2 rounded-xl border border-input bg-background/60 p-3 sm:grid-cols-2">

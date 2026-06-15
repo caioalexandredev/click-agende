@@ -203,6 +203,7 @@ export default function CompanySignupPage() {
         <FormSection title="Dados da empresa">
           <FormInput
             id="business_name"
+            required
             label="Nome da Empresa"
             placeholder="Nome do estabelecimento"
             maxLength={150}
@@ -217,6 +218,7 @@ export default function CompanySignupPage() {
             render={({ field }) => (
               <FormInput
                 id="cnpj"
+                required
                 label="CNPJ"
                 placeholder="00.000.000/0000-00"
                 inputMode="numeric"
@@ -237,6 +239,7 @@ export default function CompanySignupPage() {
             render={({ field }) => (
               <FormInput
                 id="phone"
+                required
                 label="Telefone"
                 placeholder="(11) 3456-7890"
                 inputMode="tel"
@@ -253,6 +256,7 @@ export default function CompanySignupPage() {
 
           <FormInput
             id="email"
+            required
             label="Email"
             type="email"
             placeholder="contato@empresa.com"
@@ -271,6 +275,7 @@ export default function CompanySignupPage() {
             render={({ field }) => (
               <FormInput
                 id="cep"
+                required
                 label="CEP"
                 placeholder="00000-000"
                 inputMode="numeric"
@@ -286,6 +291,7 @@ export default function CompanySignupPage() {
 
           <FormInput
             id="address"
+            required
             label="Endereço Completo"
             placeholder="Rua, Bairro"
             maxLength={150}
@@ -300,6 +306,7 @@ export default function CompanySignupPage() {
             render={({ field }) => (
               <FormSelect
                 id="uf"
+                required
                 label="UF"
                 placeholder="Selecione..."
                 options={UF_OPTIONS}
@@ -322,6 +329,7 @@ export default function CompanySignupPage() {
             render={({ field }) => (
               <FormSelect
                 id="city"
+                required
                 label="Cidade"
                 placeholder={cityPlaceholder}
                 options={cities}
@@ -338,6 +346,7 @@ export default function CompanySignupPage() {
         <FormSection title="Descrição da empresa">
           <FormTextarea
             id="description"
+            required
             label="Descrição"
             placeholder="Descreva seu estabelecimento..."
             maxLength={500}
@@ -351,6 +360,7 @@ export default function CompanySignupPage() {
         <FormSection title="Dados de acesso">
           <FormInput
             id="password"
+            required
             label="Senha"
             type="password"
             placeholder="********"
@@ -362,6 +372,7 @@ export default function CompanySignupPage() {
 
           <FormInput
             id="confirm"
+            required
             label="Confirmar Senha"
             type="password"
             placeholder="********"

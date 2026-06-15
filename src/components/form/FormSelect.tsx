@@ -27,6 +27,7 @@ type FormSelectProps = Omit<ComponentProps<typeof Select>, "children"> & {
   placeholder?: string;
   triggerClassName?: string;
   contentClassName?: string;
+  required?: boolean;
 };
 
 export function FormSelect({
@@ -37,13 +38,18 @@ export function FormSelect({
   placeholder,
   triggerClassName,
   contentClassName,
+  required,
   ...props
 }: FormSelectProps) {
   const errorId = error ? `${id}-error` : undefined;
 
   return (
     <div className="w-full space-y-1.5">
-      <Label htmlFor={id}>{label}</Label>
+      <Label htmlFor={id}>
+        {required ? <span className="text-destructive">*</span> : null}
+        {required ? " " : null}
+        {label}
+      </Label>
       <Select {...props}>
         <SelectTrigger
           id={id}

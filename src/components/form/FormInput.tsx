@@ -25,10 +25,15 @@ export function FormInput({
 }: FormInputProps) {
   const errorId = error && id ? `${id}-error` : undefined;
   const hintId = hint && id ? `${id}-hint` : undefined;
+  const required = Boolean(props.required);
 
   return (
     <div className={cn("space-y-1.5", wrapperClassName)}>
-      <Label htmlFor={id}>{label}</Label>
+      <Label htmlFor={id}>
+        {required ? <span className="text-destructive">*</span> : null}
+        {required ? " " : null}
+        {label}
+      </Label>
       <div className="relative">
         {icon ? (
           <span className="absolute left-3 top-1/2 flex h-4 w-4 -translate-y-1/2 items-center justify-center text-muted-foreground">

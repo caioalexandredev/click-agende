@@ -72,6 +72,7 @@ export default function CompanyLoginPage() {
           <FormInput
             id="email"
             label="E-mail"
+            required
             type="email"
             placeholder="empresa@exemplo.com"
             autoComplete="email"
@@ -83,6 +84,7 @@ export default function CompanyLoginPage() {
           <FormInput
             id="password"
             label="Senha"
+            required
             type="password"
             placeholder="Digite sua senha"
             autoComplete="current-password"

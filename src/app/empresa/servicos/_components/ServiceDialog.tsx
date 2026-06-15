@@ -98,6 +98,7 @@ export function ServiceDialog({ open, onOpenChange, service, onSubmit }: Service
         <form id="service-form" onSubmit={handleSubmit(submit)} className="grid gap-4 sm:grid-cols-2" noValidate>
           <FormInput
             id="name"
+            required
             label="Nome do serviço"
             placeholder="Ex: Corte de cabelo"
             maxLength={100}
@@ -112,6 +113,7 @@ export function ServiceDialog({ open, onOpenChange, service, onSubmit }: Service
             render={({ field }) => (
               <FormInput
                 id="price"
+                required
                 label="Preço (R$)"
                 placeholder="0,00"
                 inputMode="decimal"
@@ -131,6 +133,7 @@ export function ServiceDialog({ open, onOpenChange, service, onSubmit }: Service
             render={({ field }) => (
               <FormInput
                 id="durationMin"
+                required
                 label="Duração (min)"
                 placeholder="30"
                 inputMode="numeric"
@@ -151,6 +154,7 @@ export function ServiceDialog({ open, onOpenChange, service, onSubmit }: Service
             render={({ field }) => (
               <FormSelect
                 id="status"
+                required
                 label="Status"
                 placeholder="Selecione..."
                 options={[
@@ -176,6 +180,7 @@ export function ServiceDialog({ open, onOpenChange, service, onSubmit }: Service
 
           <FormTextarea
             id="description"
+            required
             label="Descrição"
             placeholder="Descreva o que está incluído no serviço..."
             maxLength={300}
