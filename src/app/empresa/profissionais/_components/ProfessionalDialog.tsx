@@ -17,6 +17,7 @@ import { Controller, useForm } from "react-hook-form";
 
 import { FormInput } from "@/components/form/FormInput";
 import { FormSelect } from "@/components/form/FormSelect";
+import { FormTimeInput } from "@/components/form/FormTimeInput";
 import { FormTextarea } from "@/components/form/FormTextarea";
 import { Button } from "@/components/ui/button";
 import {
@@ -187,24 +188,42 @@ export function ProfessionalDialog({
             {...register("profileImageUrl")}
           />
 
-          <FormInput
-            id="workStart"
-            required
-            label="Início da jornada"
-            type="time"
-            icon={<Clock className="h-4 w-4" />}
-            error={errors.workStart?.message}
-            {...register("workStart")}
+          <Controller
+            control={control}
+            name="workStart"
+            render={({ field }) => (
+              <FormTimeInput
+                id="workStart"
+                required
+                label="Início da jornada"
+                icon={<Clock className="h-4 w-4" />}
+                error={errors.workStart?.message}
+                name={field.name}
+                ref={field.ref}
+                value={field.value}
+                onBlur={field.onBlur}
+                onChange={field.onChange}
+              />
+            )}
           />
 
-          <FormInput
-            id="workEnd"
-            required
-            label="Fim da jornada"
-            type="time"
-            icon={<Clock className="h-4 w-4" />}
-            error={errors.workEnd?.message}
-            {...register("workEnd")}
+          <Controller
+            control={control}
+            name="workEnd"
+            render={({ field }) => (
+              <FormTimeInput
+                id="workEnd"
+                required
+                label="Fim da jornada"
+                icon={<Clock className="h-4 w-4" />}
+                error={errors.workEnd?.message}
+                name={field.name}
+                ref={field.ref}
+                value={field.value}
+                onBlur={field.onBlur}
+                onChange={field.onChange}
+              />
+            )}
           />
 
           <Controller
