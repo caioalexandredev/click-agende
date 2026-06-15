@@ -3,6 +3,8 @@
 import { useEffect, useMemo, useState } from "react";
 import {
   CalendarCheck,
+  ChevronLeft,
+  ChevronRight,
   Clock,
   Edit3,
   ImageOff,
@@ -40,6 +42,8 @@ const STATUS_OPTIONS = [
   { value: "inactive", label: "Inativos" },
 ];
 
+const ITEMS_PER_PAGE = 6;
+
 function formatMoney(value: number) {
   return new Intl.NumberFormat("pt-BR", {
     style: "currency",
@@ -66,6 +70,7 @@ export default function ServicosContent() {
   const [loadingServices, setLoadingServices] = useState(true);
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [page, setPage] = useState(1);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingService, setEditingService] = useState<Service | null>(null);
   const [deletingService, setDeletingService] = useState<Service | null>(null);
@@ -120,6 +125,12 @@ export default function ServicosContent() {
     (total, service) => total + service.appointmentsThisMonth,
     0,
   );
+  const totalPages = Math.max(1, Math.ceil(filteredServices.length / ITEMS_PER_PAGE));
+  const currentPage = Math.min(page, totalPages);
+  const paginatedServices = filteredServices.slice(
+    (currentPage - 1) * ITEMS_PER_PAGE,
+    currentPage * ITEMS_PER_PAGE,
+  );
 
   function openCreateDialog() {
     setEditingService(null);
@@ -158,6 +169,7 @@ export default function ServicosContent() {
           ? current.map((service) => (service.id === saved.id ? saved : service))
           : [saved, ...current],
       );
+      if (!editingService) setPage(1);
       toast.success(editingService ? "Servico atualizado com sucesso." : "Servico cadastrado com sucesso.");
       return true;
     } catch (error) {
@@ -234,20 +246,26 @@ export default function ServicosContent() {
               placeholder="Busque por nome ou descrição"
               value={query}
               icon={<Search className="h-4 w-4" />}
-              onChange={(event) => setQuery(event.target.value)}
+              onChange={(event) => {
+                setQuery(event.target.value);
+                setPage(1);
+              }}
             />
             <FormSelect
               id="service-status"
               label="Status"
               value={statusFilter}
               options={STATUS_OPTIONS}
-              onValueChange={setStatusFilter}
+              onValueChange={(value) => {
+                setStatusFilter(value);
+                setPage(1);
+              }}
             />
           </div>
 
           <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {filteredServices.length ? (
-              filteredServices.map((service) => (
+              paginatedServices.map((service) => (
                 <ServiceCard
                   key={service.id}
                   service={service}
@@ -259,6 +277,14 @@ export default function ServicosContent() {
               <EmptyState onCreate={openCreateDialog} />
             )}
           </div>
+          {filteredServices.length && totalPages > 1 ? (
+            <ListPagination
+              page={currentPage}
+              totalPages={totalPages}
+              totalItems={filteredServices.length}
+              onPageChange={setPage}
+            />
+          ) : null}
         </section>
       </main>
 
@@ -386,6 +412,56 @@ function InfoLine({ icon, text }: { icon: React.ReactNode; text: string }) {
     <div className="flex min-w-0 items-center gap-2">
       <span className="shrink-0 text-primary">{icon}</span>
       <span className="truncate">{text}</span>
+    </div>
+  );
+}
+
+function ListPagination({
+  page,
+  totalPages,
+  totalItems,
+  onPageChange,
+}: {
+  page: number;
+  totalPages: number;
+  totalItems: number;
+  onPageChange: (page: number) => void;
+}) {
+  const from = (page - 1) * ITEMS_PER_PAGE + 1;
+  const to = Math.min(page * ITEMS_PER_PAGE, totalItems);
+
+  return (
+    <div className="mt-4 flex flex-col gap-3 rounded-2xl border border-border/60 bg-background/45 px-3 py-3 sm:flex-row sm:items-center sm:justify-between">
+      <p className="text-center text-xs font-medium text-muted-foreground sm:text-left">
+        Mostrando {from}-{to} de {totalItems}
+      </p>
+      <div className="flex items-center justify-center gap-2">
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="h-9 w-9 p-0"
+          disabled={page === 1}
+          aria-label="Página anterior"
+          onClick={() => onPageChange(Math.max(1, page - 1))}
+        >
+          <ChevronLeft className="h-4 w-4" />
+        </Button>
+        <span className="min-w-24 text-center text-xs font-semibold text-muted-foreground">
+          Página {page} de {totalPages}
+        </span>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="h-9 w-9 p-0"
+          disabled={page === totalPages}
+          aria-label="Próxima página"
+          onClick={() => onPageChange(Math.min(totalPages, page + 1))}
+        >
+          <ChevronRight className="h-4 w-4" />
+        </Button>
+      </div>
     </div>
   );
 }

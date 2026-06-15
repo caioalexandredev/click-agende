@@ -4,6 +4,8 @@ import { useEffect, useMemo, useState } from "react";
 import {
   BriefcaseBusiness,
   CalendarCheck,
+  ChevronLeft,
+  ChevronRight,
   Clock,
   Edit3,
   Loader2,
@@ -53,6 +55,8 @@ const STATUS_OPTIONS = [
   { value: "inactive", label: "Inativos" },
 ];
 
+const ITEMS_PER_PAGE = 6;
+
 function toTime(value: string) {
   return value.slice(0, 5);
 }
@@ -90,6 +94,7 @@ export default function ProfissionaisContent() {
   const [loadingData, setLoadingData] = useState(true);
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [page, setPage] = useState(1);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingProfessional, setEditingProfessional] = useState<Professional | null>(null);
   const [deletingProfessional, setDeletingProfessional] = useState<Professional | null>(null);
@@ -163,6 +168,12 @@ export default function ProfissionaisContent() {
     (total, professional) => total + professional.appointmentsThisWeek,
     0,
   );
+  const totalPages = Math.max(1, Math.ceil(filteredProfessionals.length / ITEMS_PER_PAGE));
+  const currentPage = Math.min(page, totalPages);
+  const paginatedProfessionals = filteredProfessionals.slice(
+    (currentPage - 1) * ITEMS_PER_PAGE,
+    currentPage * ITEMS_PER_PAGE,
+  );
 
   function openCreateDialog() {
     setEditingProfessional(null);
@@ -203,6 +214,7 @@ export default function ProfissionaisContent() {
           ? current.map((professional) => (professional.id === saved.id ? saved : professional))
           : [saved, ...current],
       );
+      if (!editingProfessional) setPage(1);
       toast.success(editingProfessional ? "Profissional atualizado com sucesso." : "Profissional cadastrado com sucesso.");
       return true;
     } catch (error) {
@@ -281,28 +293,44 @@ export default function ProfissionaisContent() {
               placeholder="Busque por nome, especialidade, email ou telefone"
               value={query}
               icon={<Search className="h-4 w-4" />}
-              onChange={(event) => setQuery(event.target.value)}
+              onChange={(event) => {
+                setQuery(event.target.value);
+                setPage(1);
+              }}
             />
             <FormSelect
               id="professional-status"
               label="Status"
               value={statusFilter}
               options={STATUS_OPTIONS}
-              onValueChange={setStatusFilter}
+              onValueChange={(value) => {
+                setStatusFilter(value);
+                setPage(1);
+              }}
             />
           </div>
 
           <div className="mt-6 grid gap-4">
             {filteredProfessionals.length ? (
-              filteredProfessionals.map((professional) => (
-                <ProfessionalCard
-                  key={professional.id}
-                  professional={professional}
-                  services={services}
-                  onEdit={() => openEditDialog(professional)}
-                  onDelete={() => setDeletingProfessional(professional)}
-                />
-              ))
+              <>
+                {paginatedProfessionals.map((professional) => (
+                  <ProfessionalCard
+                    key={professional.id}
+                    professional={professional}
+                    services={services}
+                    onEdit={() => openEditDialog(professional)}
+                    onDelete={() => setDeletingProfessional(professional)}
+                  />
+                ))}
+                {totalPages > 1 ? (
+                  <ListPagination
+                    page={currentPage}
+                    totalPages={totalPages}
+                    totalItems={filteredProfessionals.length}
+                    onPageChange={setPage}
+                  />
+                ) : null}
+              </>
             ) : (
               <EmptyState onCreate={openCreateDialog} />
             )}
@@ -458,6 +486,56 @@ function InfoLine({ icon, text }: { icon: React.ReactNode; text: string }) {
     <div className="flex min-w-0 items-center gap-2 text-sm text-muted-foreground">
       <span className="shrink-0 text-primary">{icon}</span>
       <span className="truncate">{text}</span>
+    </div>
+  );
+}
+
+function ListPagination({
+  page,
+  totalPages,
+  totalItems,
+  onPageChange,
+}: {
+  page: number;
+  totalPages: number;
+  totalItems: number;
+  onPageChange: (page: number) => void;
+}) {
+  const from = (page - 1) * ITEMS_PER_PAGE + 1;
+  const to = Math.min(page * ITEMS_PER_PAGE, totalItems);
+
+  return (
+    <div className="flex flex-col gap-3 rounded-2xl border border-border/60 bg-background/45 px-3 py-3 sm:flex-row sm:items-center sm:justify-between">
+      <p className="text-center text-xs font-medium text-muted-foreground sm:text-left">
+        Mostrando {from}-{to} de {totalItems}
+      </p>
+      <div className="flex items-center justify-center gap-2">
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="h-9 w-9 p-0"
+          disabled={page === 1}
+          aria-label="Página anterior"
+          onClick={() => onPageChange(Math.max(1, page - 1))}
+        >
+          <ChevronLeft className="h-4 w-4" />
+        </Button>
+        <span className="min-w-24 text-center text-xs font-semibold text-muted-foreground">
+          Página {page} de {totalPages}
+        </span>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="h-9 w-9 p-0"
+          disabled={page === totalPages}
+          aria-label="Próxima página"
+          onClick={() => onPageChange(Math.min(totalPages, page + 1))}
+        >
+          <ChevronRight className="h-4 w-4" />
+        </Button>
+      </div>
     </div>
   );
 }

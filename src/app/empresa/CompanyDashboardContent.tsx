@@ -9,6 +9,8 @@ import {
   Building2,
   CalendarCheck,
   CalendarDays,
+  ChevronLeft,
+  ChevronRight,
   CheckCircle2,
   Clock,
   LayoutDashboard,
@@ -152,6 +154,8 @@ const MANUAL_STATUS_OPTIONS = [
   { value: "CANCELADO", label: "Cancelado" },
 ];
 
+const APPOINTMENTS_PER_PAGE = 3;
+
 function startOfDay(d: Date) {
   const x = new Date(d);
   x.setHours(0, 0, 0, 0);
@@ -291,6 +295,7 @@ export default function CompanyDashboardContent() {
   const today = useMemo(() => new Date(), []);
   const [selected, setSelected] = useState<Date>(today);
   const [month, setMonth] = useState<Date>(new Date(today.getFullYear(), today.getMonth(), 1));
+  const [dayPage, setDayPage] = useState(1);
 
   useEffect(() => {
     let active = true;
@@ -371,6 +376,11 @@ export default function CompanyDashboardContent() {
   const todayCount = todayAppts.filter((a) => a.status !== "cancelled").length;
   const todayPending = todayAppts.filter((a) => a.status === "pending").length;
   const todayCompleted = todayAppts.filter((a) => a.status === "completed").length;
+  const dayTotalPages = Math.max(1, Math.ceil(dayAppts.length / APPOINTMENTS_PER_PAGE));
+  const paginatedDayAppts = dayAppts.slice(
+    (dayPage - 1) * APPOINTMENTS_PER_PAGE,
+    dayPage * APPOINTMENTS_PER_PAGE,
+  );
 
   async function updateStatus(id: string, status: Exclude<ApptStatus, "pending">) {
     const endpoint = status === "completed" ? "confirmar" : "cancelar";
@@ -430,6 +440,7 @@ export default function CompanyDashboardContent() {
     const created = mapAppointment(agenda);
     setAppts((current) => [created, ...current]);
     setSelected(new Date(created.scheduled_at));
+    setDayPage(1);
     setManualOpen(false);
     toast.success("Agendamento manual cadastrado.");
   }
@@ -487,7 +498,10 @@ export default function CompanyDashboardContent() {
             <MiniCalendar
               month={month}
               selected={selected}
-              onSelect={setSelected}
+              onSelect={(date) => {
+                setSelected(date);
+                setDayPage(1);
+              }}
               onMonthChange={setMonth}
               highlightedDays={highlighted}
             />
@@ -509,13 +523,23 @@ export default function CompanyDashboardContent() {
               {dayAppts.length === 0 ? (
                 <EmptyDay />
               ) : (
-                dayAppts.map((a) => (
-                  <AppointmentItem
-                    key={a.id}
-                    a={a}
-                    onRequestUpdate={(status) => setPendingAction({ appointment: a, status })}
-                  />
-                ))
+                <>
+                  {paginatedDayAppts.map((a) => (
+                    <AppointmentItem
+                      key={a.id}
+                      a={a}
+                      onRequestUpdate={(status) => setPendingAction({ appointment: a, status })}
+                    />
+                  ))}
+                  {dayTotalPages > 1 ? (
+                    <AppointmentPagination
+                      page={dayPage}
+                      totalPages={dayTotalPages}
+                      totalItems={dayAppts.length}
+                      onPageChange={setDayPage}
+                    />
+                  ) : null}
+                </>
               )}
             </div>
           </div>
@@ -755,6 +779,56 @@ function AppointmentItem({
           </Button>
         </div>
       ) : null}
+    </div>
+  );
+}
+
+function AppointmentPagination({
+  page,
+  totalPages,
+  totalItems,
+  onPageChange,
+}: {
+  page: number;
+  totalPages: number;
+  totalItems: number;
+  onPageChange: (page: number) => void;
+}) {
+  const from = (page - 1) * APPOINTMENTS_PER_PAGE + 1;
+  const to = Math.min(page * APPOINTMENTS_PER_PAGE, totalItems);
+
+  return (
+    <div className="flex flex-col gap-3 rounded-2xl border border-border/60 bg-background/45 px-3 py-3 sm:flex-row sm:items-center sm:justify-between">
+      <p className="text-center text-xs font-medium text-muted-foreground sm:text-left">
+        Mostrando {from}-{to} de {totalItems}
+      </p>
+      <div className="flex items-center justify-center gap-2">
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="h-9 w-9 p-0"
+          disabled={page === 1}
+          aria-label="Página anterior"
+          onClick={() => onPageChange(Math.max(1, page - 1))}
+        >
+          <ChevronLeft className="h-4 w-4" />
+        </Button>
+        <span className="min-w-24 text-center text-xs font-semibold text-muted-foreground">
+          Página {page} de {totalPages}
+        </span>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="h-9 w-9 p-0"
+          disabled={page === totalPages}
+          aria-label="Próxima página"
+          onClick={() => onPageChange(Math.min(totalPages, page + 1))}
+        >
+          <ChevronRight className="h-4 w-4" />
+        </Button>
+      </div>
     </div>
   );
 }
