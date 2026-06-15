@@ -9,13 +9,25 @@ type FormInputProps = ComponentProps<typeof Input> & {
   label: string;
   error?: string;
   icon?: ReactNode;
+  hint?: string;
+  wrapperClassName?: string;
 };
 
-export function FormInput({ id, label, error, icon, className, ...props }: FormInputProps) {
+export function FormInput({
+  id,
+  label,
+  error,
+  icon,
+  hint,
+  className,
+  wrapperClassName,
+  ...props
+}: FormInputProps) {
   const errorId = error && id ? `${id}-error` : undefined;
+  const hintId = hint && id ? `${id}-hint` : undefined;
 
   return (
-    <div className="space-y-1.5">
+    <div className={cn("space-y-1.5", wrapperClassName)}>
       <Label htmlFor={id}>{label}</Label>
       <div className="relative">
         {icon ? (
@@ -26,7 +38,7 @@ export function FormInput({ id, label, error, icon, className, ...props }: FormI
         <Input
           id={id}
           aria-invalid={Boolean(error)}
-          aria-describedby={errorId}
+          aria-describedby={errorId ?? hintId}
           className={cn(
             "h-11",
             icon && "pl-9",
@@ -40,6 +52,10 @@ export function FormInput({ id, label, error, icon, className, ...props }: FormI
         <p id={errorId} className="flex items-center gap-1.5 text-xs text-destructive">
           <AlertCircle className="h-3.5 w-3.5" />
           {error}
+        </p>
+      ) : hint ? (
+        <p id={hintId} className="text-xs text-muted-foreground">
+          {hint}
         </p>
       ) : null}
     </div>
