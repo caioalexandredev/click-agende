@@ -42,7 +42,8 @@ export function CompanyHeader({ businessName }: { businessName: string }) {
     { href: "/empresa/servicos", label: "Serviços", icon: Scissors },
   ];
 
-  function signOut() {
+  async function signOut() {
+    await fetch("/api/auth/logout", { method: "POST" });
     toast.success("Sessão encerrada.");
     router.push("/empresa/login");
   }
