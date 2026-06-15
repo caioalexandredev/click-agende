@@ -45,6 +45,7 @@ type CompanyResponse = {
   id: string;
   nome: string;
   descricao?: string | null;
+  urlFotoCapa?: string | null;
   email?: string | null;
   telefone?: string | null;
   endereco?: AddressResponse | null;
@@ -75,7 +76,6 @@ function getMessage(payload: unknown, fallback: string) {
 
 function mapCompany(company: CompanyResponse): Company {
   const availableServices = company.servicos?.filter((service) => service.disponivel !== false) ?? [];
-  const coverImageUrl = availableServices.find((service) => service.urlImagem)?.urlImagem ?? "";
 
   return {
     id: company.id,
@@ -86,7 +86,7 @@ function mapCompany(company: CompanyResponse): Company {
     uf: company.endereco?.uf || "",
     phone: company.telefone || "Telefone não informado",
     email: company.email || "Email não informado",
-    coverImageUrl,
+    coverImageUrl: company.urlFotoCapa || "",
     servicesCount: availableServices.length,
   };
 }

@@ -17,6 +17,7 @@ import { CompanyHeader, useCompanyGuard } from "@/components/CompanyShell";
 import { FormInput } from "@/components/form/FormInput";
 import { FormSelect } from "@/components/form/FormSelect";
 import { FormTextarea } from "@/components/form/FormTextarea";
+import { ImageUploadInput } from "@/components/form/ImageUploadInput";
 import { Button } from "@/components/ui/button";
 import FullLoading from "@/components/loading/FullLoading";
 
@@ -30,6 +31,7 @@ type Form = {
   uf: string;
   city: string;
   description: string;
+  coverImageUrl: string;
 };
 
 type CityResponse = {
@@ -43,6 +45,7 @@ type CompanyResponse = {
   nome: string;
   cnpj: string;
   descricao: string;
+  urlFotoCapa?: string | null;
   email: string;
   telefone: string;
   endereco?: {
@@ -63,6 +66,7 @@ const INITIAL_FORM: Form = {
   uf: "",
   city: "",
   description: "",
+  coverImageUrl: "",
 };
 
 const UF_OPTIONS = [
@@ -151,6 +155,7 @@ function companyToForm(data: CompanyResponse): Form {
     uf: data.endereco?.uf ?? "",
     city: data.endereco?.idCidade ? String(data.endereco.idCidade) : "",
     description: data.descricao ?? "",
+    coverImageUrl: data.urlFotoCapa ?? "",
   };
 }
 
@@ -263,8 +268,52 @@ export default function DadosEmpresaContent() {
     if (!form.description.trim()) nextErrors.description = "Descricao e obrigatoria.";
     else if (form.description.length > 500) nextErrors.description = "Maximo de 500 caracteres.";
 
+    if (
+      form.coverImageUrl.trim() &&
+      !/^https?:\/\/.+/.test(form.coverImageUrl.trim())
+    ) {
+      nextErrors.coverImageUrl = "Informe uma URL iniciada com http:// ou https://.";
+    }
+
     setErrors(nextErrors);
     return Object.keys(nextErrors).length === 0;
+  }
+
+  async function uploadCoverImage(file: File) {
+    const formData = new FormData();
+    formData.append("file", file);
+
+    const response = await fetch("/api/empresa/foto-capa", {
+      method: "POST",
+      body: formData,
+    });
+    const payload = await response.json().catch(() => null);
+
+    if (!response.ok) {
+      throw new Error(payload?.message ?? "Nao foi possivel enviar a foto de capa.");
+    }
+
+    const nextForm = companyToForm(payload as CompanyResponse);
+    setForm(nextForm);
+    setOriginal(nextForm);
+    toast.success("Foto de capa atualizada!");
+    return nextForm.coverImageUrl;
+  }
+
+  async function removeCoverImage() {
+    const response = await fetch("/api/empresa/foto-capa", {
+      method: "DELETE",
+    });
+    const payload = await response.json().catch(() => null);
+
+    if (!response.ok) {
+      throw new Error(payload?.message ?? "Nao foi possivel remover a foto de capa.");
+    }
+
+    const nextForm = companyToForm(payload as CompanyResponse);
+    setForm(nextForm);
+    setOriginal(nextForm);
+    toast.success("Foto de capa removida.");
   }
 
   async function save() {
@@ -285,6 +334,7 @@ export default function DadosEmpresaContent() {
           telefone: form.phone,
           descricao: form.description,
           email: form.email,
+          urlFotoCapa: form.coverImageUrl.trim() || null,
           endereco: {
             cep: form.cep,
             endereco: form.address,
@@ -328,6 +378,18 @@ export default function DadosEmpresaContent() {
           <p className="mt-1 text-muted-foreground">Gerencie as informações do seu estabelecimento</p>
 
           <div className="mt-6 grid gap-5 md:grid-cols-2">
+            <ImageUploadInput
+              id="coverImageUrl"
+              label="Foto de capa"
+              value={form.coverImageUrl}
+              error={errors.coverImageUrl}
+              hint="Essa imagem aparece para clientes na listagem de estabelecimentos."
+              wrapperClassName="md:col-span-2"
+              onChange={(value) => set("coverImageUrl", value)}
+              onUpload={uploadCoverImage}
+              onRemove={removeCoverImage}
+            />
+
             <FormInput
               id="business_name"
               required
