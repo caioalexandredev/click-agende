@@ -6,9 +6,10 @@ export type Professional = {
   role: string;
   phone: string;
   email: string;
+  workStart: string;
+  workEnd: string;
   status: ProfessionalStatus;
   bio?: string;
   appointmentsThisWeek: number;
   rating: number;
 };
-

@@ -6,6 +6,7 @@ import {
   ArrowLeft,
   BriefcaseBusiness,
   CalendarCheck,
+  Clock,
   Edit3,
   Loader2,
   Mail,
@@ -35,6 +36,8 @@ const MOCK_PROFESSIONALS: Professional[] = [
     role: "Cabeleireira",
     phone: "(63) 99912-3344",
     email: "ana@clickagende.com",
+    workStart: "08:00",
+    workEnd: "17:00",
     status: "active",
     bio: "Especialista em cortes femininos, escova e finalização.",
     appointmentsThisWeek: 18,
@@ -46,6 +49,8 @@ const MOCK_PROFESSIONALS: Professional[] = [
     role: "Barbeiro",
     phone: "(63) 99888-1020",
     email: "marcos@clickagende.com",
+    workStart: "09:00",
+    workEnd: "19:00",
     status: "active",
     bio: "Atende cortes masculinos, barba e acabamento.",
     appointmentsThisWeek: 14,
@@ -57,6 +62,8 @@ const MOCK_PROFESSIONALS: Professional[] = [
     role: "Manicure",
     phone: "(63) 99777-4500",
     email: "juliana@clickagende.com",
+    workStart: "08:30",
+    workEnd: "16:30",
     status: "inactive",
     bio: "Horários temporariamente pausados para reorganização da agenda.",
     appointmentsThisWeek: 0,
@@ -302,6 +309,10 @@ function ProfessionalCard({
           <InfoLine
             icon={<CalendarCheck className="h-4 w-4" />}
             text={`${professional.appointmentsThisWeek} atendimentos`}
+          />
+          <InfoLine
+            icon={<Clock className="h-4 w-4" />}
+            text={`${professional.workStart} às ${professional.workEnd}`}
           />
           <InfoLine icon={<Star className="h-4 w-4" />} text={`${professional.rating.toFixed(1)} avaliação`} />
         </div>

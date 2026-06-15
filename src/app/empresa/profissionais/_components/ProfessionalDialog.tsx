@@ -1,7 +1,7 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { BriefcaseBusiness, Loader2, Mail, Phone, UserRound } from "lucide-react";
+import { BriefcaseBusiness, Clock, Loader2, Mail, Phone, UserRound } from "lucide-react";
 import { useEffect } from "react";
 import { Controller, useForm } from "react-hook-form";
 
@@ -32,6 +32,8 @@ const DEFAULT_VALUES: ProfessionalForm = {
   role: "",
   phone: "",
   email: "",
+  workStart: "08:00",
+  workEnd: "18:00",
   status: "active",
   bio: "",
 };
@@ -79,6 +81,8 @@ export function ProfessionalDialog({
             role: professional.role,
             phone: professional.phone,
             email: professional.email,
+            workStart: professional.workStart,
+            workEnd: professional.workEnd,
             status: professional.status,
             bio: professional.bio ?? "",
           }
@@ -114,8 +118,8 @@ export function ProfessionalDialog({
 
           <FormInput
             id="role"
-            label="Especialidade"
-            placeholder="Ex: Cabeleireira"
+            label="Especialidade por escrito"
+            placeholder="Ex: Cabeleireira, barbeiro, manicure..."
             maxLength={80}
             icon={<BriefcaseBusiness className="h-4 w-4" />}
             error={errors.role?.message}
@@ -152,6 +156,24 @@ export function ProfessionalDialog({
             icon={<Mail className="h-4 w-4" />}
             error={errors.email?.message}
             {...register("email")}
+          />
+
+          <FormInput
+            id="workStart"
+            label="Início da jornada"
+            type="time"
+            icon={<Clock className="h-4 w-4" />}
+            error={errors.workStart?.message}
+            {...register("workStart")}
+          />
+
+          <FormInput
+            id="workEnd"
+            label="Fim da jornada"
+            type="time"
+            icon={<Clock className="h-4 w-4" />}
+            error={errors.workEnd?.message}
+            {...register("workEnd")}
           />
 
           <Controller
@@ -199,4 +221,3 @@ export function ProfessionalDialog({
     </Dialog>
   );
 }
-
