@@ -1,9 +1,7 @@
 "use client";
 
-import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useMemo, useState } from "react";
 import {
+  AlertCircle,
   CalendarCheck,
   Loader2,
   LogOut,
@@ -13,11 +11,45 @@ import {
   Search,
   Store,
 } from "lucide-react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 
 import { FormInput } from "@/components/form/FormInput";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { Button } from "@/components/ui/button";
+
+type ClientResponse = {
+  id: string;
+  nomeCompleto: string;
+  telefone: string;
+  email: string;
+};
+
+type AddressResponse = {
+  endereco?: string | null;
+  cidade?: string | null;
+  estado?: string | null;
+  uf?: string | null;
+};
+
+type ServiceResponse = {
+  id: number;
+  urlImagem?: string | null;
+  nome: string;
+  disponivel?: boolean | null;
+};
+
+type CompanyResponse = {
+  id: string;
+  nome: string;
+  descricao?: string | null;
+  email?: string | null;
+  telefone?: string | null;
+  endereco?: AddressResponse | null;
+  servicos?: ServiceResponse[] | null;
+};
 
 type Company = {
   id: string;
@@ -29,63 +61,119 @@ type Company = {
   phone: string;
   email: string;
   coverImageUrl: string;
+  servicesCount: number;
 };
 
-const MOCK_CLIENT = {
-  name: "Caio Ramos",
-};
+function getMessage(payload: unknown, fallback: string) {
+  if (payload && typeof payload === "object" && "message" in payload) {
+    const message = payload.message;
+    if (typeof message === "string") return message;
+  }
 
-const MOCK_COMPANIES: Company[] = [
-  {
-    id: "clickagende-studio",
-    businessName: "ClickAgende Studio",
-    description: "Estúdio especializado em beleza, bem-estar e atendimento com hora marcada.",
-    address: "Rua das Flores, 120",
-    city: "Palmas",
-    uf: "TO",
-    phone: "(63) 3456-7890",
-    email: "contato@clickagende.com",
-    coverImageUrl:
-      "https://images.unsplash.com/photo-1560066984-138dadb4c035?auto=format&fit=crop&w=900&q=80",
-  },
-  {
-    id: "barbearia-central",
-    businessName: "Barbearia Central",
-    description: "Cortes masculinos, barba completa e acabamento com atendimento pontual.",
-    address: "Avenida JK, 845",
-    city: "Palmas",
-    uf: "TO",
-    phone: "(63) 99988-1020",
-    email: "agenda@barbeariacentral.com",
-    coverImageUrl:
-      "https://images.unsplash.com/photo-1621605815971-fbc98d665033?auto=format&fit=crop&w=900&q=80",
-  },
-  {
-    id: "espaco-bem-estar",
-    businessName: "Espaço Bem-Estar",
-    description: "Serviços de manicure, estética e cuidados pessoais em ambiente acolhedor.",
-    address: "Quadra 104 Norte, Alameda 12",
-    city: "Palmas",
-    uf: "TO",
-    phone: "(63) 99777-4500",
-    email: "contato@espacobemestar.com",
-    coverImageUrl:
-      "https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?auto=format&fit=crop&w=900&q=80",
-  },
-];
+  return fallback;
+}
+
+function mapCompany(company: CompanyResponse): Company {
+  const availableServices = company.servicos?.filter((service) => service.disponivel !== false) ?? [];
+  const coverImageUrl = availableServices.find((service) => service.urlImagem)?.urlImagem ?? "";
+
+  return {
+    id: company.id,
+    businessName: company.nome,
+    description: company.descricao || "Estabelecimento disponível para agendamentos.",
+    address: company.endereco?.endereco || "Endereço não informado",
+    city: company.endereco?.cidade || "",
+    uf: company.endereco?.uf || "",
+    phone: company.telefone || "Telefone não informado",
+    email: company.email || "Email não informado",
+    coverImageUrl,
+    servicesCount: availableServices.length,
+  };
+}
 
 export default function ClientHomeContent() {
   const router = useRouter();
-  const [companies] = useState<Company[]>(MOCK_COMPANIES);
-  const [loading] = useState(false);
+  const [clientName, setClientName] = useState("");
+  const [companies, setCompanies] = useState<Company[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
   const [query, setQuery] = useState("");
+
+  useEffect(() => {
+    let active = true;
+
+    async function loadClientHome() {
+      setLoading(true);
+      setError("");
+
+      try {
+        const [clientResponse, companiesResponse] = await Promise.all([
+          fetch("/api/cliente/me"),
+          fetch("/api/cliente/empresas"),
+        ]);
+
+        const clientPayload = (await clientResponse.json().catch(() => null)) as
+          | ClientResponse
+          | { message?: string }
+          | null;
+        const companiesPayload = (await companiesResponse.json().catch(() => null)) as
+          | CompanyResponse[]
+          | { message?: string }
+          | null;
+
+        if (clientResponse.status === 401 || companiesResponse.status === 401) {
+          router.push("/cliente/login");
+          return;
+        }
+
+        if (!clientResponse.ok) {
+          throw new Error(getMessage(clientPayload, "Não foi possível carregar os dados do cliente."));
+        }
+
+        if (!companiesResponse.ok || !Array.isArray(companiesPayload)) {
+          throw new Error(getMessage(companiesPayload, "Não foi possível carregar os estabelecimentos."));
+        }
+
+        if (!active) return;
+
+        setClientName(clientPayload && "nomeCompleto" in clientPayload ? clientPayload.nomeCompleto : "");
+        setCompanies(companiesPayload.map(mapCompany));
+      } catch (requestError) {
+        if (!active) return;
+
+        const message =
+          requestError instanceof Error
+            ? requestError.message
+            : "Não foi possível carregar a página do cliente.";
+
+        setError(message);
+        toast.error(message);
+      } finally {
+        if (active) setLoading(false);
+      }
+    }
+
+    loadClientHome();
+
+    return () => {
+      active = false;
+    };
+  }, [router]);
 
   const filteredCompanies = useMemo(() => {
     const term = query.trim().toLowerCase();
     if (!term) return companies;
 
     return companies.filter((company) =>
-      [company.businessName, company.description, company.city, company.uf]
+      [
+        company.businessName,
+        company.description,
+        company.address,
+        company.city,
+        company.uf,
+        company.email,
+        company.phone,
+      ]
         .join(" ")
         .toLowerCase()
         .includes(term),
@@ -121,10 +209,10 @@ export default function ClientHomeContent() {
       <main className="relative z-10 mx-auto max-w-6xl px-5 pb-12">
         <section className="glass rounded-3xl p-6 sm:p-8">
           <span className="text-xs font-semibold uppercase tracking-wider text-primary">
-            Olá, {MOCK_CLIENT.name || "cliente"}
+            Olá, {clientName || "cliente"}
           </span>
           <h1 className="mt-2 font-display text-2xl font-bold sm:text-3xl">
-            Escolha um Estabelecimento
+            Escolha um estabelecimento
           </h1>
           <p className="mt-1 text-muted-foreground">
             Selecione onde deseja agendar seus serviços.
@@ -144,6 +232,11 @@ export default function ClientHomeContent() {
           <div className="grid place-items-center py-16">
             <Loader2 className="h-6 w-6 animate-spin text-primary" />
           </div>
+        ) : error ? (
+          <div className="glass mt-6 grid place-items-center rounded-3xl p-12 text-center text-muted-foreground">
+            <AlertCircle className="mb-3 h-10 w-10 text-destructive" />
+            {error}
+          </div>
         ) : filteredCompanies.length === 0 ? (
           <div className="glass mt-6 grid place-items-center rounded-3xl p-12 text-center text-muted-foreground">
             <Store className="mb-3 h-10 w-10" />
@@ -162,25 +255,26 @@ export default function ClientHomeContent() {
 }
 
 function CompanyCard({ company }: { company: Company }) {
-  const [imageError, setImageError] = useState(false);
-  const href = `/cliente/estabelecimento?empresa=${company.id}`;
+  const href = `/cliente/estabelecimento/${company.id}`;
 
   return (
     <article className="glass overflow-hidden rounded-3xl">
       <div className="relative aspect-[16/10] bg-gradient-to-br from-primary/30 to-accent/30">
-        {company.coverImageUrl && !imageError ? (
+        {company.coverImageUrl ? (
           <div
             role="img"
             aria-label={company.businessName}
             className="h-full w-full bg-cover bg-center"
             style={{ backgroundImage: `url(${company.coverImageUrl})` }}
-            onError={() => setImageError(true)}
           />
         ) : (
           <div className="grid h-full w-full place-items-center text-primary-foreground/70">
             <Store className="h-12 w-12" />
           </div>
         )}
+        <span className="glass-soft absolute bottom-3 left-3 rounded-full px-3 py-1 text-xs font-semibold">
+          {company.servicesCount} {company.servicesCount === 1 ? "serviço" : "serviços"}
+        </span>
       </div>
 
       <div className="p-5">
@@ -193,7 +287,9 @@ function CompanyCard({ company }: { company: Company }) {
           <p className="flex items-start gap-1.5">
             <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0" />
             <span className="line-clamp-1">
-              {company.address}, {company.city} - {company.uf}
+              {company.address}
+              {company.city ? `, ${company.city}` : ""}
+              {company.uf ? ` - ${company.uf}` : ""}
             </span>
           </p>
           <p className="flex items-center gap-1.5">
