@@ -6,6 +6,7 @@ import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { toast } from "sonner";
 import {
   AlertCircle,
+  BarChart3,
   Building2,
   CalendarCheck,
   CalendarDays,
@@ -596,6 +597,7 @@ function CompanyHeader({
     { href: "/empresa/dados", label: "Empresa", icon: Building2 },
     { href: "/empresa/profissionais", label: "Profissionais", icon: Users2 },
     { href: "/empresa/servicos", label: "Serviços", icon: Scissors },
+    { href: "/empresa/relatorios", label: "Relatórios", icon: BarChart3 },
   ];
 
   return (

@@ -26,6 +26,7 @@ export const authRoutes = [
   { path: "/empresa/dados", roles: [AUTH_ROLES.ADMIN] },
   { path: "/empresa/profissionais", roles: [AUTH_ROLES.ADMIN] },
   { path: "/empresa/servicos", roles: [AUTH_ROLES.ADMIN] },
+  { path: "/empresa/relatorios", roles: [AUTH_ROLES.ADMIN] },
 ] satisfies RouteAccess[];
 
 export function isPublicRoute(pathname: string) {
@@ -47,4 +48,3 @@ export function getDefaultPathForRoles(roles: string[]) {
 export function hasAnyRole(userRoles: string[], allowedRoles: readonly AuthRole[]) {
   return allowedRoles.some((role) => userRoles.includes(role));
 }
-

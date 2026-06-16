@@ -5,17 +5,19 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import {
-  CalendarCheck,
-  LogOut,
+  BarChart3,
   Building2,
-  Users2,
-  Scissors,
+  CalendarCheck,
   LayoutDashboard,
+  LogOut,
   Menu,
+  Scissors,
+  Users2,
   X,
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
+
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { Button } from "@/components/ui/button";
 
 type Company = {
   id: string;
@@ -43,7 +45,7 @@ export function useCompanyGuard() {
           return;
         }
 
-        if (!response.ok) throw new Error("Nao foi possivel carregar a empresa.");
+        if (!response.ok) throw new Error("Não foi possível carregar a empresa.");
 
         const payload = (await response.json()) as CompanyResponse;
         if (!active) return;
@@ -78,6 +80,7 @@ export function CompanyHeader({ businessName }: { businessName: string }) {
     { href: "/empresa/dados", label: "Empresa", icon: Building2 },
     { href: "/empresa/profissionais", label: "Profissionais", icon: Users2 },
     { href: "/empresa/servicos", label: "Serviços", icon: Scissors },
+    { href: "/empresa/relatorios", label: "Relatórios", icon: BarChart3 },
   ];
 
   async function signOut() {
@@ -103,6 +106,7 @@ export function CompanyHeader({ businessName }: { businessName: string }) {
               </p>
             </div>
           </div>
+
           <nav className="hidden items-center gap-1 lg:flex">
             {items.map((item) => {
               const active = pathname === item.href;
@@ -119,6 +123,7 @@ export function CompanyHeader({ businessName }: { businessName: string }) {
               );
             })}
           </nav>
+
           <div className="flex items-center gap-1.5">
             <ThemeToggle />
             <Button variant="ghost" onClick={signOut} className="hidden gap-1.5 sm:inline-flex">
@@ -134,6 +139,7 @@ export function CompanyHeader({ businessName }: { businessName: string }) {
             </button>
           </div>
         </div>
+
         {open ? (
           <div className="glass mt-2 grid gap-1 rounded-2xl p-2 lg:hidden">
             {items.map((item) => {

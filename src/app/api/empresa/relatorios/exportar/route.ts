@@ -1,0 +1,56 @@
+import { NextResponse, type NextRequest } from "next/server";
+
+import { ACCESS_TOKEN_COOKIE } from "@/lib/auth/session";
+import { getErrorMessage, parseSpringResponse, springFetch } from "@/lib/server/spring";
+
+function getAuthorizationHeader(request: NextRequest) {
+  const token = request.cookies.get(ACCESS_TOKEN_COOKIE)?.value;
+  return token ? { Authorization: `Bearer ${token}` } : undefined;
+}
+
+function buildSpringPath(request: NextRequest) {
+  const params = new URLSearchParams();
+  const dataInicio = request.nextUrl.searchParams.get("dataInicio");
+  const dataFim = request.nextUrl.searchParams.get("dataFim");
+  const profissionalId = request.nextUrl.searchParams.get("profissionalId");
+
+  if (dataInicio) params.set("dataInicio", dataInicio);
+  if (dataFim) params.set("dataFim", dataFim);
+  if (profissionalId) params.set("profissionalId", profissionalId);
+
+  const query = params.toString();
+  return query ? `/relatorio/exportar?${query}` : "/relatorio/exportar";
+}
+
+export async function GET(request: NextRequest) {
+  const headers = getAuthorizationHeader(request);
+
+  if (!headers) {
+    return NextResponse.json({ message: "Não autenticado." }, { status: 401 });
+  }
+
+  const springResponse = await springFetch(buildSpringPath(request), {
+    headers: {
+      ...headers,
+      accept: "text/csv, application/octet-stream",
+    },
+  });
+
+  if (!springResponse.ok) {
+    const payload = await parseSpringResponse(springResponse);
+    return NextResponse.json(
+      { message: getErrorMessage(payload, "Não foi possível exportar o relatório.") },
+      { status: springResponse.status },
+    );
+  }
+
+  const body = await springResponse.arrayBuffer();
+
+  return new NextResponse(body, {
+    status: 200,
+    headers: {
+      "content-type": springResponse.headers.get("content-type") ?? "text/csv;charset=utf-8",
+      "content-disposition": springResponse.headers.get("content-disposition") ?? "attachment; filename=relatorio_financeiro.csv",
+    },
+  });
+}
