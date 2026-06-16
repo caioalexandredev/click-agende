@@ -4,19 +4,9 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import {
-  BarChart3,
-  Building2,
-  CalendarCheck,
-  History,
-  LayoutDashboard,
-  LogOut,
-  Menu,
-  Scissors,
-  Users2,
-  X,
-} from "lucide-react";
+import { BarChart3, Building2, History, LayoutDashboard, LogOut, Menu, Scissors, Users2, X } from "lucide-react";
 
+import { BrandMark } from "@/components/BrandMark";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { Button } from "@/components/ui/button";
 
@@ -96,9 +86,7 @@ export function CompanyHeader({ businessName }: { businessName: string }) {
       <div className="mx-auto max-w-7xl px-4 pt-5 sm:px-6">
         <div className="glass flex items-center justify-between rounded-2xl px-4 py-3 sm:px-5">
           <div className="flex min-w-0 items-center gap-3">
-            <div className="bg-gradient-primary grid h-10 w-10 shrink-0 place-items-center rounded-xl text-primary-foreground shadow-lg">
-              <CalendarCheck className="h-5 w-5" />
-            </div>
+            <BrandMark className="h-10 w-10" />
             <div className="min-w-0">
               <h1 className="truncate font-display text-base font-bold sm:text-lg">
                 {businessName || "Sua empresa"}

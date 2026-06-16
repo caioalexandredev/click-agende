@@ -1,6 +1,7 @@
 import AreaCard from "@/components/card/AreaCard";
+import { BrandMark } from "@/components/BrandMark";
 import { ThemeToggle } from "@/components/ThemeToggle";
-import { CalendarCheck, Sparkles, Store, Users } from "lucide-react";
+import { Sparkles, Store, Users } from "lucide-react";
 import Link from "next/link";
 
 export default function Landing() {
@@ -11,9 +12,7 @@ export default function Landing() {
 
       <header className="relative z-10 mx-auto flex max-w-6xl items-center justify-between px-5 py-5">
         <Link href="/" className="flex items-center gap-2">
-          <div className="bg-gradient-primary grid h-9 w-9 place-items-center rounded-xl text-primary-foreground shadow-lg">
-            <CalendarCheck className="h-5 w-5" />
-          </div>
+          <BrandMark className="h-9 w-9" />
           <span className="font-display text-lg font-bold tracking-tight">ClickAgende</span>
         </Link>
         <ThemeToggle />

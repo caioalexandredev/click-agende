@@ -8,7 +8,6 @@ import {
   AlertCircle,
   BarChart3,
   Building2,
-  CalendarCheck,
   CalendarDays,
   ChevronLeft,
   ChevronRight,
@@ -56,6 +55,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { BrandMark } from "@/components/BrandMark";
 
 type ApptStatus = "pending" | "cancelled" | "completed";
 type NotificationChannel = "whatsapp" | "email";
@@ -635,9 +635,7 @@ function CompanyHeader({
       <div className="mx-auto max-w-7xl px-4 pt-5 sm:px-6">
         <div className="glass flex items-center justify-between rounded-2xl px-4 py-3 sm:px-5">
           <div className="flex min-w-0 items-center gap-3">
-            <div className="bg-gradient-primary grid h-10 w-10 shrink-0 place-items-center rounded-xl text-primary-foreground shadow-lg">
-              <CalendarCheck className="h-5 w-5" />
-            </div>
+            <BrandMark className="h-10 w-10" />
             <div className="min-w-0">
               <h1 className="truncate font-display text-base font-bold sm:text-lg">
                 {businessName || "Sua empresa"}

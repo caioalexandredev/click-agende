@@ -1,5 +1,6 @@
-import { ArrowLeft, CalendarCheck } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import type { ReactNode } from "react";
+import { BrandMark } from "./BrandMark";
 import { ThemeToggle } from "./ThemeToggle";
 import Link from "next/link";
 
@@ -24,9 +25,7 @@ export function AuthShell({ title, subtitle, badge, tone, children, footer, size
 
       <header className="relative z-10 mx-auto flex max-w-6xl items-center justify-between px-5 py-5">
         <Link href="/" className="flex items-center gap-2">
-          <div className="bg-gradient-primary grid h-9 w-9 place-items-center rounded-xl text-primary-foreground shadow-lg">
-            <CalendarCheck className="h-5 w-5" />
-          </div>
+          <BrandMark className="h-9 w-9" />
           <span className="font-display text-lg font-bold tracking-tight">ClickAgende</span>
         </Link>
         <ThemeToggle />

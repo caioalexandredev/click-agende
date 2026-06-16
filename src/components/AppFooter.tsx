@@ -1,5 +1,7 @@
 import Link from "next/link";
-import { CalendarCheck, Mail, ShieldCheck } from "lucide-react";
+import { Mail, ShieldCheck } from "lucide-react";
+
+import { BrandMark } from "@/components/BrandMark";
 
 const footerLinks = [
   { href: "/cliente", label: "Encontrar empresas" },
@@ -13,9 +15,7 @@ export function AppFooter() {
     <footer className="relative z-10 border-t border-border/60 bg-background/80 backdrop-blur">
       <div className="mx-auto flex max-w-7xl flex-col gap-6 px-4 py-8 sm:px-6 lg:flex-row lg:items-center lg:justify-between">
         <div className="flex min-w-0 gap-3">
-          <div className="bg-gradient-primary grid h-11 w-11 shrink-0 place-items-center rounded-xl text-primary-foreground shadow-lg">
-            <CalendarCheck className="h-5 w-5" />
-          </div>
+          <BrandMark className="h-11 w-11" />
           <div className="min-w-0">
             <p className="font-display text-base font-bold">ClickAgende</p>
             <p className="mt-1 max-w-xl text-sm leading-6 text-muted-foreground">
