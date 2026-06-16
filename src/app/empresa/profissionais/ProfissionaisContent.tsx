@@ -47,6 +47,9 @@ type ProfessionalResponse = {
   horarioFim: string;
   disponivel?: boolean | null;
   servicos?: ServiceResponse[];
+  atendimentos?: number | null;
+  atendimentosSemana?: number | null;
+  mediaAvaliacao?: number | null;
 };
 
 const STATUS_OPTIONS = [
@@ -82,8 +85,9 @@ function mapProfessional(professional: ProfessionalResponse): Professional {
     serviceIds: professional.servicos?.map((service) => String(service.id)) ?? [],
     status: professional.disponivel === false ? "inactive" : "active",
     bio: professional.biografia ?? "",
-    appointmentsThisWeek: 0,
-    rating: 5,
+    totalAppointments: Number(professional.atendimentos ?? 0),
+    appointmentsThisWeek: Number(professional.atendimentosSemana ?? 0),
+    rating: Number(professional.mediaAvaliacao ?? 0),
   };
 }
 
@@ -431,7 +435,11 @@ function ProfessionalCard({
           <InfoLine icon={<Mail className="h-4 w-4" />} text={professional.email} />
           <InfoLine
             icon={<CalendarCheck className="h-4 w-4" />}
-            text={`${professional.appointmentsThisWeek} atendimentos`}
+            text={`${professional.totalAppointments} atendimentos`}
+          />
+          <InfoLine
+            icon={<BriefcaseBusiness className="h-4 w-4" />}
+            text={`${professional.appointmentsThisWeek} na semana`}
           />
           <InfoLine
             icon={<Clock className="h-4 w-4" />}

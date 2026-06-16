@@ -12,6 +12,7 @@ export type Professional = {
   serviceIds: string[];
   status: ProfessionalStatus;
   bio?: string;
+  totalAppointments: number;
   appointmentsThisWeek: number;
   rating: number;
 };

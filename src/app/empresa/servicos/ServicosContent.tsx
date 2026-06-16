@@ -34,6 +34,20 @@ type ServiceResponse = {
   preco: number;
   duracao: number;
   disponivel?: boolean | null;
+  agendamentosMes?: number | null;
+};
+
+type HistoryServiceResponse = {
+  nome: string;
+};
+
+type HistoryAppointmentResponse = {
+  statusAgendamento?: string | null;
+  servicos?: HistoryServiceResponse[] | null;
+};
+
+type HistoryResponse = {
+  historicoAgendamentos?: HistoryAppointmentResponse[] | null;
 };
 
 const STATUS_OPTIONS = [
@@ -51,7 +65,47 @@ function formatMoney(value: number) {
   }).format(value);
 }
 
-function mapService(service: ServiceResponse): Service {
+function getCurrentMonthRange() {
+  const now = new Date();
+  const start = new Date(now.getFullYear(), now.getMonth(), 1);
+  const end = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+  return {
+    start: formatLocalDate(start),
+    end: formatLocalDate(end),
+  };
+}
+
+function formatLocalDate(date: Date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function normalizeServiceName(value: string) {
+  return value.trim().toLowerCase();
+}
+
+function countAppointmentsByServiceName(history: HistoryResponse | null) {
+  const counts = new Map<string, number>();
+
+  history?.historicoAgendamentos?.forEach((appointment) => {
+    if (appointment.statusAgendamento === "CANCELADO") return;
+
+    appointment.servicos?.forEach((service) => {
+      const key = normalizeServiceName(service.nome);
+      if (!key) return;
+      counts.set(key, (counts.get(key) ?? 0) + 1);
+    });
+  });
+
+  return counts;
+}
+
+function mapService(service: ServiceResponse, monthlyCounts?: Map<string, number>): Service {
+  const fallbackCount = monthlyCounts?.get(normalizeServiceName(service.nome)) ?? 0;
+  const backendCount = Number(service.agendamentosMes ?? 0);
+
   return {
     id: String(service.id),
     name: service.nome,
@@ -60,7 +114,7 @@ function mapService(service: ServiceResponse): Service {
     durationMin: Number(service.duracao),
     status: service.disponivel === false ? "inactive" : "active",
     imageUrl: service.urlImagem ?? "",
-    appointmentsThisMonth: 0,
+    appointmentsThisMonth: Math.max(backendCount, fallbackCount),
   };
 }
 
@@ -82,16 +136,23 @@ export default function ServicosContent() {
       setLoadingServices(true);
 
       try {
-        const response = await fetch("/api/empresa/servicos");
-        const payload = await response.json().catch(() => null);
+        const { start, end } = getCurrentMonthRange();
+        const [servicesResponse, historyResponse] = await Promise.all([
+          fetch("/api/empresa/servicos"),
+          fetch(`/api/empresa/historico?dataInicio=${start}&dataFim=${end}&page=0&size=500`),
+        ]);
+        const payload = await servicesResponse.json().catch(() => null);
+        const historyPayload = await historyResponse.json().catch(() => null) as HistoryResponse | null;
 
-        if (!response.ok) {
-          throw new Error(payload?.message ?? "Nao foi possivel carregar os servicos.");
+        if (!servicesResponse.ok) {
+          throw new Error(payload?.message ?? "Não foi possível carregar os serviços.");
         }
 
-        if (active) setServices((payload as ServiceResponse[]).map(mapService));
+        const monthlyCounts = historyResponse.ok ? countAppointmentsByServiceName(historyPayload) : new Map<string, number>();
+
+        if (active) setServices((payload as ServiceResponse[]).map((service) => mapService(service, monthlyCounts)));
       } catch (error) {
-        toast.error(error instanceof Error ? error.message : "Nao foi possivel carregar os servicos.");
+        toast.error(error instanceof Error ? error.message : "Não foi possível carregar os serviços.");
       } finally {
         if (active) setLoadingServices(false);
       }
@@ -159,7 +220,7 @@ export default function ServicosContent() {
       if (!response.ok) {
         throw new Error(
           responsePayload?.message ??
-          (editingService ? "Nao foi possivel atualizar o servico." : "Nao foi possivel cadastrar o servico."),
+          (editingService ? "Não foi possível atualizar o serviço." : "Não foi possível cadastrar o serviço."),
         );
       }
 
@@ -170,10 +231,10 @@ export default function ServicosContent() {
           : [saved, ...current],
       );
       if (!editingService) setPage(1);
-      toast.success(editingService ? "Servico atualizado com sucesso." : "Servico cadastrado com sucesso.");
+      toast.success(editingService ? "Serviço atualizado com sucesso." : "Serviço cadastrado com sucesso.");
       return true;
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Nao foi possivel salvar o servico.");
+      toast.error(error instanceof Error ? error.message : "Não foi possível salvar o serviço.");
       return false;
     }
   }
@@ -188,14 +249,14 @@ export default function ServicosContent() {
       const payload = await response.json().catch(() => null);
 
       if (!response.ok) {
-        throw new Error(payload?.message ?? "Nao foi possivel excluir o servico.");
+        throw new Error(payload?.message ?? "Não foi possível excluir o serviço.");
       }
 
       setServices((current) => current.filter((service) => service.id !== deletingService.id));
-      toast.success("Servico excluido.");
+      toast.success("Serviço excluído.");
       setDeletingService(null);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Nao foi possivel excluir o servico.");
+      toast.error(error instanceof Error ? error.message : "Não foi possível excluir o serviço.");
     }
   }
 
@@ -216,7 +277,7 @@ export default function ServicosContent() {
           </div>
           <Button onClick={openCreateDialog} className="bg-gradient-primary">
             <Plus className="h-4 w-4" />
-            Adicionar servico
+            Adicionar serviço
           </Button>
         </section>
 
@@ -376,14 +437,14 @@ function ServiceCard({
             {service.description}
           </p>
         ) : (
-          <p className="mt-2 min-h-10 text-sm text-muted-foreground">Sem descricao cadastrada.</p>
+          <p className="mt-2 min-h-10 text-sm text-muted-foreground">Sem descrição cadastrada.</p>
         )}
 
         <div className="mt-3 grid gap-2 text-sm text-muted-foreground">
           <InfoLine icon={<Clock className="h-4 w-4" />} text={`${service.durationMin} minutos`} />
           <InfoLine
             icon={<CalendarCheck className="h-4 w-4" />}
-            text={`${service.appointmentsThisMonth} agendamentos no mes`}
+            text={`${service.appointmentsThisMonth} agendamentos no mês`}
           />
         </div>
 
@@ -472,13 +533,13 @@ function EmptyState({ onCreate }: { onCreate: () => void }) {
       <div className="mx-auto grid h-12 w-12 place-items-center rounded-full bg-primary/10 text-primary">
         <Scissors className="h-5 w-5" />
       </div>
-      <h2 className="mt-3 font-display text-lg font-semibold">Nenhum servico encontrado</h2>
+      <h2 className="mt-3 font-display text-lg font-semibold">Nenhum serviço encontrado</h2>
       <p className="mx-auto mt-1 max-w-md text-sm text-muted-foreground">
-        Ajuste os filtros ou cadastre um novo servico para liberar novos agendamentos.
+        Ajuste os filtros ou cadastre um novo serviço para liberar novos agendamentos.
       </p>
       <Button onClick={onCreate} className="mt-4 bg-gradient-primary">
         <Plus className="h-4 w-4" />
-        Adicionar servico
+        Adicionar serviço
       </Button>
     </div>
   );

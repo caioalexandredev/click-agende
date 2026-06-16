@@ -32,7 +32,7 @@ export async function GET(request: NextRequest) {
   const headers = getAuthorizationHeader(request);
 
   if (!headers) {
-    return NextResponse.json({ message: "Nao autenticado." }, { status: 401 });
+    return NextResponse.json({ message: "Não autenticado." }, { status: 401 });
   }
 
   const springResponse = await springFetch("/servico/gerenciar", { headers });
@@ -40,7 +40,7 @@ export async function GET(request: NextRequest) {
 
   if (!springResponse.ok) {
     return NextResponse.json(
-      { message: getErrorMessage(payload, "Nao foi possivel carregar os servicos.") },
+      { message: getErrorMessage(payload, "Não foi possível carregar os serviços.") },
       { status: springResponse.status },
     );
   }
@@ -52,7 +52,7 @@ export async function POST(request: NextRequest) {
   const headers = getAuthorizationHeader(request);
 
   if (!headers) {
-    return NextResponse.json({ message: "Nao autenticado." }, { status: 401 });
+    return NextResponse.json({ message: "Não autenticado." }, { status: 401 });
   }
 
   const springResponse = await springFetch("/servico/inserir", {
@@ -64,7 +64,7 @@ export async function POST(request: NextRequest) {
 
   if (!springResponse.ok) {
     return NextResponse.json(
-      { message: getErrorMessage(payload, "Nao foi possivel cadastrar o servico.") },
+      { message: getErrorMessage(payload, "Não foi possível cadastrar o serviço.") },
       { status: springResponse.status },
     );
   }

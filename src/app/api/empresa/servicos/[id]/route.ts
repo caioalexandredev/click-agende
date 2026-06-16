@@ -32,7 +32,7 @@ export async function PUT(request: NextRequest, context: { params: Promise<{ id:
   const headers = getAuthorizationHeader(request);
 
   if (!headers) {
-    return NextResponse.json({ message: "Nao autenticado." }, { status: 401 });
+    return NextResponse.json({ message: "Não autenticado." }, { status: 401 });
   }
 
   const { id } = await context.params;
@@ -45,7 +45,7 @@ export async function PUT(request: NextRequest, context: { params: Promise<{ id:
 
   if (!springResponse.ok) {
     return NextResponse.json(
-      { message: getErrorMessage(payload, "Nao foi possivel atualizar o servico.") },
+      { message: getErrorMessage(payload, "Não foi possível atualizar o serviço.") },
       { status: springResponse.status },
     );
   }
@@ -57,7 +57,7 @@ export async function DELETE(request: NextRequest, context: { params: Promise<{ 
   const headers = getAuthorizationHeader(request);
 
   if (!headers) {
-    return NextResponse.json({ message: "Nao autenticado." }, { status: 401 });
+    return NextResponse.json({ message: "Não autenticado." }, { status: 401 });
   }
 
   const { id } = await context.params;
@@ -69,7 +69,7 @@ export async function DELETE(request: NextRequest, context: { params: Promise<{ 
 
   if (!springResponse.ok) {
     return NextResponse.json(
-      { message: getErrorMessage(payload, "Nao foi possivel excluir o servico.") },
+      { message: getErrorMessage(payload, "Não foi possível excluir o serviço.") },
       { status: springResponse.status },
     );
   }
