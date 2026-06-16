@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Inter, Sora } from "next/font/google";
 import { Toaster } from "sonner";
+import { AppFooter } from "@/components/AppFooter";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import "./globals.css";
 
@@ -42,7 +43,8 @@ export default function RootLayout({
     >
       <body className="flex min-h-full flex-col">
         <ThemeProvider>
-          {children}
+          <div className="flex-1">{children}</div>
+          <AppFooter />
           <Toaster richColors closeButton position="top-right" />
         </ThemeProvider>
       </body>
