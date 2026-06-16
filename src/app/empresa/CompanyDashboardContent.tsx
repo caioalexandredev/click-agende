@@ -23,6 +23,7 @@ import {
   Plus,
   Save,
   Scissors,
+  Send,
   UserRound,
   Users2,
   X,
@@ -287,6 +288,7 @@ export default function CompanyDashboardContent() {
     appointment: Appt;
     status: Exclude<ApptStatus, "pending">;
   } | null>(null);
+  const [notifyingId, setNotifyingId] = useState<string | null>(null);
   const [manualOpen, setManualOpen] = useState(false);
   const [manualResources, setManualResources] = useState<{
     professionals: CompanyProfessional[];
@@ -401,6 +403,25 @@ export default function CompanyDashboardContent() {
       setPendingAction(null);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Não foi possível atualizar o agendamento.");
+    }
+  }
+
+  async function notifyClient(id: string) {
+    setNotifyingId(id);
+
+    try {
+      const response = await fetch(`/api/empresa/agenda/${id}/notificar`, { method: "POST" });
+      const payload = await response.json().catch(() => null);
+
+      if (!response.ok) {
+        throw new Error(payload?.message ?? "Não foi possível notificar o cliente.");
+      }
+
+      toast.success(payload?.mensagem ?? "Cliente notificado pelo WhatsApp.");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Não foi possível notificar o cliente.");
+    } finally {
+      setNotifyingId(null);
     }
   }
 
@@ -531,6 +552,8 @@ export default function CompanyDashboardContent() {
                       key={a.id}
                       a={a}
                       onRequestUpdate={(status) => setPendingAction({ appointment: a, status })}
+                      onNotifyClient={() => void notifyClient(a.id)}
+                      notifying={notifyingId === a.id}
                     />
                   ))}
                   {dayTotalPages > 1 ? (
@@ -734,9 +757,13 @@ function SummaryCard({
 function AppointmentItem({
   a,
   onRequestUpdate,
+  onNotifyClient,
+  notifying,
 }: {
   a: Appt;
   onRequestUpdate: (s: Exclude<ApptStatus, "pending">) => void;
+  onNotifyClient: () => void;
+  notifying: boolean;
 }) {
   return (
     <div className="glass-soft rounded-2xl p-4">
@@ -765,10 +792,10 @@ function AppointmentItem({
       </div>
 
       {a.status === "pending" ? (
-        <div className="mt-3 flex gap-2">
+        <div className="mt-3 grid gap-2 sm:grid-cols-3">
           <Button
             size="sm"
-            className="bg-gradient-primary h-9 flex-1"
+            className="bg-gradient-primary h-9"
             onClick={() => onRequestUpdate("completed")}
           >
             <CheckCircle2 className="mr-1.5 h-4 w-4" /> Finalizar
@@ -776,13 +803,44 @@ function AppointmentItem({
           <Button
             size="sm"
             variant="outline"
-            className="h-9 flex-1"
+            className="h-9"
             onClick={() => onRequestUpdate("cancelled")}
           >
             <XCircle className="mr-1.5 h-4 w-4" /> Cancelar
           </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            className="h-9"
+            onClick={onNotifyClient}
+            disabled={notifying}
+          >
+            {notifying ? (
+              <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
+            ) : (
+              <Send className="mr-1.5 h-4 w-4" />
+            )}
+            Notificar cliente
+          </Button>
         </div>
-      ) : null}
+      ) : (
+        <div className="mt-3">
+          <Button
+            size="sm"
+            variant="outline"
+            className="h-9 w-full sm:w-auto"
+            onClick={onNotifyClient}
+            disabled={notifying}
+          >
+            {notifying ? (
+              <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
+            ) : (
+              <Send className="mr-1.5 h-4 w-4" />
+            )}
+            Notificar cliente
+          </Button>
+        </div>
+      )}
     </div>
   );
 }
