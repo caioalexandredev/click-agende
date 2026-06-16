@@ -18,12 +18,13 @@ import {
   LayoutDashboard,
   Loader2,
   LogOut,
+  Mail,
   Menu,
+  MessageCircle,
   Phone,
   Plus,
   Save,
   Scissors,
-  Send,
   UserRound,
   Users2,
   X,
@@ -57,6 +58,7 @@ import {
 } from "@/components/ui/dialog";
 
 type ApptStatus = "pending" | "cancelled" | "completed";
+type NotificationChannel = "whatsapp" | "email";
 
 type ManualStatus = "AGENDADO" | "CANCELADO" | "FINALIZADO";
 
@@ -288,7 +290,7 @@ export default function CompanyDashboardContent() {
     appointment: Appt;
     status: Exclude<ApptStatus, "pending">;
   } | null>(null);
-  const [notifyingId, setNotifyingId] = useState<string | null>(null);
+  const [notifyingTarget, setNotifyingTarget] = useState<{ id: string; channel: NotificationChannel } | null>(null);
   const [manualOpen, setManualOpen] = useState(false);
   const [manualResources, setManualResources] = useState<{
     professionals: CompanyProfessional[];
@@ -406,22 +408,25 @@ export default function CompanyDashboardContent() {
     }
   }
 
-  async function notifyClient(id: string) {
-    setNotifyingId(id);
+  async function notifyClient(id: string, channel: NotificationChannel) {
+    setNotifyingTarget({ id, channel });
 
     try {
-      const response = await fetch(`/api/empresa/agenda/${id}/notificar`, { method: "POST" });
+      const response = await fetch(`/api/empresa/agenda/${id}/notificar/${channel}`, { method: "POST" });
       const payload = await response.json().catch(() => null);
 
       if (!response.ok) {
         throw new Error(payload?.message ?? "Não foi possível notificar o cliente.");
       }
 
-      toast.success(payload?.mensagem ?? "Cliente notificado pelo WhatsApp.");
+      toast.success(
+        payload?.mensagem ??
+          (channel === "email" ? "Cliente notificado por email." : "Cliente notificado pelo WhatsApp."),
+      );
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Não foi possível notificar o cliente.");
     } finally {
-      setNotifyingId(null);
+      setNotifyingTarget(null);
     }
   }
 
@@ -552,8 +557,8 @@ export default function CompanyDashboardContent() {
                       key={a.id}
                       a={a}
                       onRequestUpdate={(status) => setPendingAction({ appointment: a, status })}
-                      onNotifyClient={() => void notifyClient(a.id)}
-                      notifying={notifyingId === a.id}
+                      onNotifyClient={(channel) => void notifyClient(a.id, channel)}
+                      notifyingChannel={notifyingTarget?.id === a.id ? notifyingTarget.channel : null}
                     />
                   ))}
                   {dayTotalPages > 1 ? (
@@ -758,13 +763,17 @@ function AppointmentItem({
   a,
   onRequestUpdate,
   onNotifyClient,
-  notifying,
+  notifyingChannel,
 }: {
   a: Appt;
   onRequestUpdate: (s: Exclude<ApptStatus, "pending">) => void;
-  onNotifyClient: () => void;
-  notifying: boolean;
+  onNotifyClient: (channel: NotificationChannel) => void;
+  notifyingChannel: NotificationChannel | null;
 }) {
+  const notifyingWhatsapp = notifyingChannel === "whatsapp";
+  const notifyingEmail = notifyingChannel === "email";
+  const notifying = notifyingChannel !== null;
+
   return (
     <div className="glass-soft rounded-2xl p-4">
       <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3">
@@ -792,7 +801,7 @@ function AppointmentItem({
       </div>
 
       {a.status === "pending" ? (
-        <div className="mt-3 grid gap-2 sm:grid-cols-3">
+        <div className="mt-3 grid gap-2 sm:grid-cols-4">
           <Button
             size="sm"
             className="bg-gradient-primary h-9"
@@ -812,32 +821,60 @@ function AppointmentItem({
             size="sm"
             variant="outline"
             className="h-9"
-            onClick={onNotifyClient}
+            onClick={() => onNotifyClient("whatsapp")}
             disabled={notifying}
           >
-            {notifying ? (
+            {notifyingWhatsapp ? (
               <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
             ) : (
-              <Send className="mr-1.5 h-4 w-4" />
+              <MessageCircle className="mr-1.5 h-4 w-4" />
             )}
-            Notificar cliente
+            WhatsApp
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            className="h-9"
+            onClick={() => onNotifyClient("email")}
+            disabled={notifying}
+          >
+            {notifyingEmail ? (
+              <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
+            ) : (
+              <Mail className="mr-1.5 h-4 w-4" />
+            )}
+            Email
           </Button>
         </div>
       ) : (
-        <div className="mt-3">
+        <div className="mt-3 flex flex-col gap-2 sm:flex-row">
           <Button
             size="sm"
             variant="outline"
             className="h-9 w-full sm:w-auto"
-            onClick={onNotifyClient}
+            onClick={() => onNotifyClient("whatsapp")}
             disabled={notifying}
           >
-            {notifying ? (
+            {notifyingWhatsapp ? (
               <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
             ) : (
-              <Send className="mr-1.5 h-4 w-4" />
+              <MessageCircle className="mr-1.5 h-4 w-4" />
             )}
-            Notificar cliente
+            Notificar via WhatsApp
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            className="h-9 w-full sm:w-auto"
+            onClick={() => onNotifyClient("email")}
+            disabled={notifying}
+          >
+            {notifyingEmail ? (
+              <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
+            ) : (
+              <Mail className="mr-1.5 h-4 w-4" />
+            )}
+            Notificar via Email
           </Button>
         </div>
       )}

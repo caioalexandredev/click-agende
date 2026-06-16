@@ -8,15 +8,24 @@ function getAuthorizationHeader(request: NextRequest) {
   return token ? { Authorization: `Bearer ${token}` } : undefined;
 }
 
-export async function POST(request: NextRequest, context: { params: Promise<{ id: string }> }) {
+export async function POST(
+  request: NextRequest,
+  context: { params: Promise<{ id: string; channel: string }> },
+) {
   const headers = getAuthorizationHeader(request);
 
   if (!headers) {
     return NextResponse.json({ message: "Não autenticado." }, { status: 401 });
   }
 
-  const { id } = await context.params;
-  const springResponse = await springFetch(`/agenda/${id}/notificar-cliente/whatsapp`, {
+  const { id, channel } = await context.params;
+  const normalizedChannel = channel.toLowerCase();
+
+  if (!["whatsapp", "email"].includes(normalizedChannel)) {
+    return NextResponse.json({ message: "Canal de notificação inválido." }, { status: 400 });
+  }
+
+  const springResponse = await springFetch(`/agenda/${id}/notificar-cliente/${normalizedChannel}`, {
     method: "POST",
     headers,
   });
