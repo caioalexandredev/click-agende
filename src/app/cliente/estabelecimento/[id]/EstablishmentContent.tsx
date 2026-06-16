@@ -3,12 +3,10 @@
 import {
   AlertCircle,
   ArrowLeft,
-  CalendarCheck,
   CheckCircle2,
   Clock,
   ImageOff,
   Loader2,
-  LogOut,
   Mail,
   MapPin,
   Phone,
@@ -21,7 +19,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
-import { ThemeToggle } from "@/components/ThemeToggle";
+import { ClientHeader } from "@/components/ClientShel";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -337,12 +335,6 @@ export default function EstablishmentContent({ companyId }: EstablishmentContent
     };
   }, [companyId, router]);
 
-  async function signOut() {
-    await fetch("/api/auth/logout", { method: "POST" });
-    toast.success("Sessão encerrada.");
-    router.push("/cliente/login");
-  }
-
   async function cancelAppointment() {
     if (!cancelTarget) return;
 
@@ -406,37 +398,29 @@ export default function EstablishmentContent({ companyId }: EstablishmentContent
   return (
     <div className="relative min-h-screen overflow-hidden">
       <div className="pointer-events-none absolute -top-32 -right-32 h-96 w-96 rounded-full bg-accent/30 blur-3xl" />
-      <header className="relative z-10 mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-5 py-5">
-        <div className="flex items-center gap-2">
-          <div className="bg-gradient-primary grid h-9 w-9 place-items-center rounded-xl text-primary-foreground shadow-lg">
-            <CalendarCheck className="h-5 w-5" />
-          </div>
-          <span className="font-display text-lg font-bold">ClickAgende</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <ThemeToggle />
-          <Link
-            href="/cliente"
-            className="glass-soft inline-flex items-center gap-1.5 rounded-xl px-3 py-2 text-sm font-medium hover:bg-primary/10"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            Trocar estabelecimento
-          </Link>
-          <Button className="bg-gradient-primary gap-1.5" onClick={() => setModalOpen(true)}>
-            <Plus className="h-4 w-4" />
-            Novo agendamento
-          </Button>
-          <Button variant="ghost" onClick={signOut} className="gap-1.5">
-            <LogOut className="h-4 w-4" />
-            Sair
-          </Button>
-        </div>
-      </header>
+      <ClientHeader />
 
-      <main className="relative z-10 mx-auto max-w-6xl px-5 pb-12">
+      <main className="relative z-10 mx-auto max-w-6xl px-4 pb-12 pt-4 sm:px-6">
         <div className="glass rounded-3xl p-6 sm:p-8">
-          <h1 className="font-display text-2xl font-bold sm:text-3xl">{company.name}</h1>
-          <p className="mt-1 text-muted-foreground">Escolha um serviço e agende seu horário.</p>
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div>
+              <h1 className="font-display text-2xl font-bold sm:text-3xl">{company.name}</h1>
+              <p className="mt-1 text-muted-foreground">Escolha um serviço e agende seu horário.</p>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <Link
+                href="/cliente"
+                className="glass-soft inline-flex items-center gap-1.5 rounded-xl px-3 py-2 text-sm font-medium hover:bg-primary/10"
+              >
+                <ArrowLeft className="h-4 w-4" />
+                Trocar estabelecimento
+              </Link>
+              <Button className="bg-gradient-primary gap-1.5" onClick={() => setModalOpen(true)}>
+                <Plus className="h-4 w-4" />
+                Novo agendamento
+              </Button>
+            </div>
+          </div>
         </div>
 
         <Section title="Sobre o estabelecimento">

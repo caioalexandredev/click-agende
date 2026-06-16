@@ -2,9 +2,7 @@
 
 import {
   AlertCircle,
-  CalendarCheck,
   Loader2,
-  LogOut,
   Mail,
   MapPin,
   Phone,
@@ -16,9 +14,8 @@ import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 
+import { ClientHeader } from "@/components/ClientShel";
 import { FormInput } from "@/components/form/FormInput";
-import { ThemeToggle } from "@/components/ThemeToggle";
-import { Button } from "@/components/ui/button";
 
 type ClientResponse = {
   id: string;
@@ -180,33 +177,13 @@ export default function ClientHomeContent() {
     );
   }, [companies, query]);
 
-  async function signOut() {
-    await fetch("/api/auth/logout", { method: "POST" });
-    toast.success("Sessão encerrada.");
-    router.push("/cliente/login");
-  }
-
   return (
     <div className="relative min-h-screen overflow-hidden">
       <div className="pointer-events-none absolute -top-32 -left-32 h-96 w-96 rounded-full bg-primary/30 blur-3xl" />
 
-      <header className="relative z-10 mx-auto flex max-w-6xl items-center justify-between px-5 py-5">
-        <Link href="/" className="flex items-center gap-2">
-          <div className="bg-gradient-primary grid h-9 w-9 place-items-center rounded-xl text-primary-foreground shadow-lg">
-            <CalendarCheck className="h-5 w-5" />
-          </div>
-          <span className="font-display text-lg font-bold">ClickAgende</span>
-        </Link>
-        <div className="flex items-center gap-2">
-          <ThemeToggle />
-          <Button variant="ghost" onClick={signOut} className="gap-1.5">
-            <LogOut className="h-4 w-4" />
-            Sair
-          </Button>
-        </div>
-      </header>
+      <ClientHeader />
 
-      <main className="relative z-10 mx-auto max-w-6xl px-5 pb-12">
+      <main className="relative z-10 mx-auto max-w-6xl px-4 pb-12 pt-4 sm:px-6">
         <section className="glass rounded-3xl p-6 sm:p-8">
           <span className="text-xs font-semibold uppercase tracking-wider text-primary">
             Olá, {clientName || "cliente"}
