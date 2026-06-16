@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { CalendarCheck, CalendarClock, LogOut, Menu, Settings, Store, X } from "lucide-react";
 import { toast } from "sonner";
 
+import { ClientNotificationPrompt } from "@/components/ClientNotificationPrompt";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { Button } from "@/components/ui/button";
 
@@ -80,75 +81,78 @@ export function ClientHeader() {
   }
 
   return (
-    <header className="relative z-20">
-      <div className="mx-auto max-w-6xl px-4 pt-5 sm:px-6">
-        <div className="glass flex items-center justify-between rounded-2xl px-4 py-3 sm:px-5">
-          <Link href="/cliente" className="flex min-w-0 items-center gap-2">
-            <div className="bg-gradient-primary grid h-10 w-10 shrink-0 place-items-center rounded-xl text-primary-foreground shadow-lg">
-              <CalendarCheck className="h-5 w-5" />
+    <>
+      <header className="relative z-20">
+        <div className="mx-auto max-w-6xl px-4 pt-5 sm:px-6">
+          <div className="glass flex items-center justify-between rounded-2xl px-4 py-3 sm:px-5">
+            <Link href="/cliente" className="flex min-w-0 items-center gap-2">
+              <div className="bg-gradient-primary grid h-10 w-10 shrink-0 place-items-center rounded-xl text-primary-foreground shadow-lg">
+                <CalendarCheck className="h-5 w-5" />
+              </div>
+              <span className="truncate font-display text-lg font-bold">ClickAgende</span>
+            </Link>
+
+            <nav className="hidden items-center gap-1 md:flex">
+              {items.map((item) => {
+                const active = pathname === item.href;
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    className={`inline-flex items-center gap-1.5 rounded-xl px-3 py-2 text-sm font-medium transition ${
+                      active ? "bg-primary/15 text-primary" : "text-foreground/80 hover:bg-primary/10"
+                    }`}
+                  >
+                    <item.icon className="h-4 w-4" /> {item.label}
+                  </Link>
+                );
+              })}
+            </nav>
+
+            <div className="flex items-center gap-1.5">
+              <ThemeToggle />
+              <Button variant="ghost" onClick={signOut} className="hidden gap-1.5 sm:inline-flex">
+                <LogOut className="h-4 w-4" /> Sair
+              </Button>
+              <button
+                type="button"
+                onClick={() => setOpen(!open)}
+                className="glass-soft grid h-10 w-10 place-items-center rounded-full md:hidden"
+                aria-label="Menu"
+              >
+                {open ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}
+              </button>
             </div>
-            <span className="truncate font-display text-lg font-bold">ClickAgende</span>
-          </Link>
-
-          <nav className="hidden items-center gap-1 md:flex">
-            {items.map((item) => {
-              const active = pathname === item.href;
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className={`inline-flex items-center gap-1.5 rounded-xl px-3 py-2 text-sm font-medium transition ${
-                    active ? "bg-primary/15 text-primary" : "text-foreground/80 hover:bg-primary/10"
-                  }`}
-                >
-                  <item.icon className="h-4 w-4" /> {item.label}
-                </Link>
-              );
-            })}
-          </nav>
-
-          <div className="flex items-center gap-1.5">
-            <ThemeToggle />
-            <Button variant="ghost" onClick={signOut} className="hidden gap-1.5 sm:inline-flex">
-              <LogOut className="h-4 w-4" /> Sair
-            </Button>
-            <button
-              type="button"
-              onClick={() => setOpen(!open)}
-              className="glass-soft grid h-10 w-10 place-items-center rounded-full md:hidden"
-              aria-label="Menu"
-            >
-              {open ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}
-            </button>
           </div>
+
+          {open ? (
+            <div className="glass mt-2 grid gap-1 rounded-2xl p-2 md:hidden">
+              {items.map((item) => {
+                const active = pathname === item.href;
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    onClick={() => setOpen(false)}
+                    className={`flex items-center gap-2 rounded-xl px-3 py-2.5 text-sm font-medium ${
+                      active ? "bg-primary/15 text-primary" : "hover:bg-primary/10"
+                    }`}
+                  >
+                    <item.icon className="h-4 w-4" /> {item.label}
+                  </Link>
+                );
+              })}
+              <button
+                onClick={signOut}
+                className="flex items-center gap-2 rounded-xl px-3 py-2.5 text-sm font-medium text-destructive hover:bg-destructive/10"
+              >
+                <LogOut className="h-4 w-4" /> Sair
+              </button>
+            </div>
+          ) : null}
         </div>
-
-        {open ? (
-          <div className="glass mt-2 grid gap-1 rounded-2xl p-2 md:hidden">
-            {items.map((item) => {
-              const active = pathname === item.href;
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  onClick={() => setOpen(false)}
-                  className={`flex items-center gap-2 rounded-xl px-3 py-2.5 text-sm font-medium ${
-                    active ? "bg-primary/15 text-primary" : "hover:bg-primary/10"
-                  }`}
-                >
-                  <item.icon className="h-4 w-4" /> {item.label}
-                </Link>
-              );
-            })}
-            <button
-              onClick={signOut}
-              className="flex items-center gap-2 rounded-xl px-3 py-2.5 text-sm font-medium text-destructive hover:bg-destructive/10"
-            >
-              <LogOut className="h-4 w-4" /> Sair
-            </button>
-          </div>
-        ) : null}
-      </div>
-    </header>
+      </header>
+      <ClientNotificationPrompt />
+    </>
   );
 }

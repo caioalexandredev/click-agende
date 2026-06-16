@@ -27,3 +27,27 @@ export async function GET(request: NextRequest) {
 
   return NextResponse.json(payload);
 }
+
+export async function PUT(request: NextRequest) {
+  const headers = getAuthorizationHeader(request);
+
+  if (!headers) {
+    return NextResponse.json({ message: "Não autenticado." }, { status: 401 });
+  }
+
+  const springResponse = await springFetch("/cliente/me/editar", {
+    method: "PUT",
+    headers,
+    body: JSON.stringify(await request.json().catch(() => ({}))),
+  });
+  const payload = await parseSpringResponse(springResponse);
+
+  if (!springResponse.ok) {
+    return NextResponse.json(
+      { message: getErrorMessage(payload, "Não foi possível salvar os dados do cliente.") },
+      { status: springResponse.status },
+    );
+  }
+
+  return NextResponse.json(payload);
+}
