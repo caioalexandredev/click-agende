@@ -14,6 +14,7 @@ import {
   ChevronRight,
   CheckCircle2,
   Clock,
+  History,
   LayoutDashboard,
   Loader2,
   LogOut,
@@ -597,6 +598,7 @@ function CompanyHeader({
     { href: "/empresa/dados", label: "Empresa", icon: Building2 },
     { href: "/empresa/profissionais", label: "Profissionais", icon: Users2 },
     { href: "/empresa/servicos", label: "Serviços", icon: Scissors },
+    { href: "/empresa/historico", label: "Histórico", icon: History },
     { href: "/empresa/relatorios", label: "Relatórios", icon: BarChart3 },
   ];
 

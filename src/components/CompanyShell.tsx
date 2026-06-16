@@ -8,6 +8,7 @@ import {
   BarChart3,
   Building2,
   CalendarCheck,
+  History,
   LayoutDashboard,
   LogOut,
   Menu,
@@ -80,6 +81,7 @@ export function CompanyHeader({ businessName }: { businessName: string }) {
     { href: "/empresa/dados", label: "Empresa", icon: Building2 },
     { href: "/empresa/profissionais", label: "Profissionais", icon: Users2 },
     { href: "/empresa/servicos", label: "Serviços", icon: Scissors },
+    { href: "/empresa/historico", label: "Histórico", icon: History },
     { href: "/empresa/relatorios", label: "Relatórios", icon: BarChart3 },
   ];
 

@@ -27,6 +27,7 @@ export const authRoutes = [
   { path: "/empresa/dados", roles: [AUTH_ROLES.ADMIN] },
   { path: "/empresa/profissionais", roles: [AUTH_ROLES.ADMIN] },
   { path: "/empresa/servicos", roles: [AUTH_ROLES.ADMIN] },
+  { path: "/empresa/historico", roles: [AUTH_ROLES.ADMIN] },
   { path: "/empresa/relatorios", roles: [AUTH_ROLES.ADMIN] },
 ] satisfies RouteAccess[];
 
