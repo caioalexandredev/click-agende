@@ -21,6 +21,7 @@ export const publicRoutes = [
 
 export const authRoutes = [
   { path: "/cliente", roles: [AUTH_ROLES.CLIENT] },
+  { path: "/cliente/agendamentos", roles: [AUTH_ROLES.CLIENT] },
   { path: "/cliente/estabelecimento", roles: [AUTH_ROLES.CLIENT] },
   { path: "/empresa", roles: [AUTH_ROLES.ADMIN, AUTH_ROLES.EMPLOYEE] },
   { path: "/empresa/dados", roles: [AUTH_ROLES.ADMIN] },
