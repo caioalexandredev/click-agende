@@ -1,20 +1,20 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="ClickAgende">
   <defs>
     <linearGradient id="brand" x1="10" y1="8" x2="54" y2="58" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#7C3AED" />
-      <stop offset="0.55" stop-color="#C026D3" />
-      <stop offset="1" stop-color="#06B6D4" />
+      <stop stop-color="#7F5AF0" />
+      <stop offset="0.56" stop-color="#A878E8" />
+      <stop offset="1" stop-color="#56BFD1" />
     </linearGradient>
     <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
-      <feDropShadow dx="0" dy="4" stdDeviation="5" flood-color="#4C1D95" flood-opacity="0.28" />
+      <feDropShadow dx="0" dy="4" stdDeviation="5" flood-color="#5B4DB8" flood-opacity="0.18" />
     </filter>
   </defs>
 
   <circle cx="32" cy="32" r="28" fill="url(#brand)" filter="url(#shadow)" />
   <circle cx="32" cy="32" r="23" fill="none" stroke="#FFFFFF" stroke-opacity="0.18" stroke-width="2" />
 
-  <rect x="18" y="19" width="28" height="28" rx="7" fill="#FFFFFF" fill-opacity="0.96" />
-  <path d="M24 17v7M40 17v7" stroke="#7C3AED" stroke-width="4" stroke-linecap="round" />
-  <path d="M20 29h24" stroke="#7C3AED" stroke-width="3" stroke-linecap="round" opacity="0.28" />
-  <path d="m25 37 5 5 10-12" fill="none" stroke="#7C3AED" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" />
+  <rect x="18" y="19" width="28" height="28" rx="7" fill="#FFFFFF" fill-opacity="0.94" />
+  <path d="M24 17v7M40 17v7" stroke="#6F5CE8" stroke-width="4" stroke-linecap="round" />
+  <path d="M20 29h24" stroke="#6F5CE8" stroke-width="3" stroke-linecap="round" opacity="0.24" />
+  <path d="m25 37 5 5 10-12" fill="none" stroke="#6F5CE8" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" />
 </svg>
