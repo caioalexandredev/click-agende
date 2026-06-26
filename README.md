@@ -12,12 +12,12 @@ Este repositório representa a aplicação Next.js do sistema. Ele conversa com 
 ## Preview
 
 <p align="center">
-  <img src="./assets/1.Landing Page.jpeg" alt="Landing Page ClickAgende" height="300" />
-  <img src="./assets/1.Dashboard.jpeg" alt="Dashboard do ClickAgende" height="300" />
+  <img src="./assets/1.Landing Page.jpeg" alt="Landing Page ClickAgende" height="200" />
+  <img src="./assets/1.Dashboard.jpeg" alt="Dashboard do ClickAgende" height="200" />
 </p>
 <p align="center">
-  <img src="./assets/3.Gestão de Serviços.jpeg" alt="Painel de Gestão de Serviços do ClickAgende" height="300" />
-  <img src="./assets/4.Relatórios.jpeg" alt="Relatórios do ClickAgende" height="300" />
+  <img src="./assets/3.Gestão de Serviços.jpeg" alt="Painel de Gestão de Serviços do ClickAgende" height="200" />
+  <img src="./assets/4.Relatórios.jpeg" alt="Relatórios do ClickAgende" height="200" />
 </p>
 
 ## Funcionalidades
