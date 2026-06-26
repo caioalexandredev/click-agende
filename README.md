@@ -9,6 +9,17 @@ Frontend web do ClickAgende, uma plataforma brasileira para agendamento intelige
 
 Este repositório representa a aplicação Next.js do sistema. Ele conversa com o backend Spring por meio de rotas internas do próprio Next, mantendo a comunicação do navegador mais controlada e centralizando cookies, sessão e regras de acesso no servidor do front.
 
+## Preview
+
+<p align="center">
+  <img src="./assets/1.Landing Page.jpeg" alt="Landing Page ClickAgende" height="300" />
+  <img src="./assets/1.Dashboard.jpeg" alt="Dashboard do ClickAgende" height="300" />
+</p>
+<p align="center">
+  <img src="./assets/3.Gestão de Serviços.jpeg" alt="Painel de Gestão de Serviços do ClickAgende" height="300" />
+  <img src="./assets/4.Relatórios.jpeg" alt="Relatórios do ClickAgende" height="300" />
+</p>
+
 ## Funcionalidades
 
 ### Cliente
